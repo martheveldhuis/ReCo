@@ -7,7 +7,9 @@ Te bespreken:
 * Opdracht als door NFI gedefinieerd
 * Onderzoeksvraag
 * Planning
+  * Presentatie van 17e (tijd / link?)
 * Afspraken m.b.t. toekomstige meetings
+  * Met TU en NFI 1x ~3 weken?
 
 ## Notities
 
