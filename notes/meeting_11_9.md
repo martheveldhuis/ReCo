@@ -1,13 +1,13 @@
 ## Notities
 
-Corina Benschop: moleculaire biologie, complexe dna profielen.
+Corina Benschop: moleculaire biologie, complexe dna profielen.  
 Jennifer van der Linden: bioinformatics.
 
 Gewerkt aan vorig project, kunnen meer informatie geven over de DNA data, het vorige project, research dat verder is gegaan op het vorige project.
 
 ### Vorige project
 
-ML model in pythton notebook voor inschatten hoeveelheid donoren bij een DNA sample, specifiek voor dit type data
+ML model in pythton notebook voor inschatten hoeveelheid donoren bij een DNA sample, specifiek voor dit type data  
 Uitkomst = NOC, probability.
 
 Handmatige features
