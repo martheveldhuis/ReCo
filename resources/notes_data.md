@@ -1,4 +1,5 @@
 ## Data notes
+*Images taken from [Nikolay's Genetics Lessons](https://www.youtube.com/user/GeneticsLessons)*
 
 **Short Tandem Repeats** are tracks of repeated short (2-6bp) DNA sequences. The analyzed loci are picked since they have high variability between individuals. They are defined by CODIS.
 
@@ -11,7 +12,7 @@ AATGAATGAATG
 **Electropherogram** measures the STRs.   
 The reference peaks at the bottom are molecules with known sizes that were passed through the machine. Therefore we know the sizes of the alleles that are being analyzed afterwards. The peaks are formed by the thousands of molecules passed through the machine at the same time (in a clump). On the y-axis, the peaks are measured in Relative fluorescent units.
 
->Here we see that there are four peaks before allele 1, which have known sizes of 1-4 repeats. Therefore we know that allele 1 has more than 4 repeats. There are two known peaks after allele 1 (of size e.g. 7 and 9), but before allele 2. Therefore we know that allele 1 has less than 7 repeats, and allele 2 has more than 9. etc.  
+>Here we see that there are four peaks before allele 1, which have known sizes of 1-4 repeats. Therefore we know that allele 1 has more than 4 repeats. There are two known peaks after allele 1 (of size e.g. 7 and 9), but before allele 2. Therefore we know that allele 1 has less than 7 repeats, and allele 2 has more than 9. etc.
 ![](assets/notes_data-c5cd12db.png)
 
 When one peak is much bigger than the others, it indicates a homozygous allele.  
