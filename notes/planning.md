@@ -1,40 +1,56 @@
 # Planning
 
-#### November
-* Determine question
+## November
+* Read literature
 * Create baseline explanations with current ML model
+* Start proposal
 
-09 - Start of Q2
+09 - Start of Q2  
+16 - Meeting NFI + TU Delft  
+17 - Present Literature survey
 
-#### December
-* Create user study to evaluate the current methods
+## December
+* Finish proposal version 1
+  * 1-2 A4
+  * Living document
 
+07 - Finish proposal  
+16 - Meeting NFI + TU Delft: present proposal  
 21 - Start of Christmas holiday
 
-#### January
+## January
 04 - End of Christmas holiday
 
 26 - My birthday
 
-#### February
+## February
+* Contact committee members
+
 01 - Start of Spring holiday  
-08 - Start of Q3
+08 - Start of Q3  
+08 - Meeting NFI + TU Delft <- **TODO plan in calendar**  
+15 - **Midterm meeting**  
+26 - **Send committee form**
 
-#### March
+## March
+* Thesis writing
 
-#### April
+## April
+* Thesis writing  
+
 19 - Start of Q4
+23 - **Send Green Light form with draft thesis**
 
-#### May
+## May
+* Thesis writing
 
-#### June
-xx - Final submission to exam committee (two weeks before defense)  
-xx - Final defense
+## June
+(04) - **Final submission to exam committee (two weeks before defense)**  
+(18) - **Final defense**
 
-#### July
+## July
 02 - End of Q4
 
 
-required forms, committee meetings, milestones, green light moments, etc., are due
 
-thesis committee graduation form we need 3 faculty members. We need at least 1 member outside of the PRB lab and one more member that can be from PRB. At our first meeting, please suggest 2 candidate faculty members to be on your committee. You can find potential committee members on the "people" sections of the TUD computer science webpages, or it can be faculty members where you enjoyed their courses or have had contact with before.
+1 member outside of the PRB lab and one more member that can be from PRB. At our first meeting, please suggest 2 candidate faculty members to be on your committee. You can find potential committee members on the "people" sections of the TUD computer science webpages, or it can be faculty members where you enjoyed their courses or have had contact with before.
