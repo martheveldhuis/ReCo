@@ -36,7 +36,7 @@ Due to the measuring procedure of STR, artifacts can occur (e.g. smaller peak ne
 
 Allelic drop out refers to a missing allele, which happens randomly when for instance the end of the flanking region is missing (mutated nucleotide at the end of the priming sequence), therefore the allele cannot be attached and the peak is missing.
 
->In this example, we can see that the inital peak for the DXS7132 locus is not quite high enough to account for a homozygous allele (it would have to be ~twice as high). Therefore, this must be allele drop out. The blue line is a 150RPU threshold to filter out stutter (noise).  
+>In this example, we can see that the initial peak for the DXS7132 locus is not quite high enough to account for a homozygous allele (it would have to be ~twice as high). Therefore, this must be allele drop out. The blue line is a 150RPU threshold to filter out stutter (noise).  
 ![](assets/notes_data-5cfc23c6.png)
 
 **PowerPlex Fusion 6C profiles** is the type of data that we have.
