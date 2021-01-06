@@ -10,7 +10,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 class DataAnalyzer:
     file_path = r"D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590.txt"
-    # The sample name (index) + 19 features + NOC
+    # The sample name (index) + 19 features (should be provided in file) + NOC
     features = ['index','MAC', 'TAC', 'MinNOC_CSF1PO', 'MinNOC_D16S539', 
                 'PercAF_D1S1656', 'AlleleCount_D3S1358', 'AlleleCount_D8S1179',
                 'MinNOC_Penta D', 'MinNOC_Penta E', 'SumAF_TH01', 
@@ -87,7 +87,14 @@ class DataAnalyzer:
                                       interval=50)
         ani.save('lda.gif', writer=animation.PillowWriter(fps=20))
 
-data_analyzer = DataAnalyzer()
-data_analyzer.read_file()
-data_analyzer.plot_feature_correlations()
-data_analyzer.plot_lda()
+
+class CounterfactualGenerator:
+    x = None
+    y_predicted = None
+    y_target = None
+    predictor = None # PredictorWrapper
+
+
+
+#data_analyzer.plot_feature_correlations()
+#data_analyzer.plot_lda()
