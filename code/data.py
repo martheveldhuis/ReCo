@@ -7,38 +7,52 @@ from matplotlib import animation
 import sklearn
 from sklearn.manifold import TSNE
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import train_test_split
 
 class DataReader:
     file_path = None
     X = None
     y = None
+    test_fraction = None
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, test_fraction):
         self.file_path = file_path
+        self.test_fraction = test_fraction
         print("Initalizing data reader with file at: ", file_path)
 
-    def get_data(self):
-        return self.read_data
+    def get_split_data(self):
+        self.read_data()
+
+        # Split in a stratified manner
+        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, 
+                                                            test_size=self.test_fraction, 
+                                                            random_state=0, 
+                                                            stratify=self.y)
+        y_train = y_train.values.reshape(-1,1).ravel()
+        y_test = y_test.values.reshape(-1,1).ravel()
+
+        return X_train, X_test, y_train, y_test
 
     def read_data(self):
-        "Must be implemented for each type of file"
+        """
+           Must be implemented for each type of file
+        """
         raise NotImplementedError
 
+class DataReader19Features(DataReader):
 
+    def __init__(self, file_path, test_fraction):
+        super().__init__(file_path, test_fraction)
 
-class DataAnalyzer:
-    file_path = r"D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590.txt"
-    # The sample name (index) + 19 features (should be provided in file) + NOC
-    features = ['index','MAC', 'TAC', 'MinNOC_CSF1PO', 'MinNOC_D16S539', 
-                'PercAF_D1S1656', 'AlleleCount_D3S1358', 'AlleleCount_D8S1179',
-                'MinNOC_Penta D', 'MinNOC_Penta E', 'SumAF_TH01', 
-                'AlleleCount_TPOX', 'MinNOC_TPOX', 'stdHeight_vWA', 
-                'stdAllele', 'MAC0', 'MAC5-6', 'peaksBelowRFU', 'MatchKans', 
-                'MinNOC', 'NOC']
-    X = None
-    y = None
+    def read_data(self):
+        # The sample name (index) + 19 features + NOC
+        features = ['index','MAC', 'TAC', 'MinNOC_CSF1PO', 'MinNOC_D16S539', 
+                    'PercAF_D1S1656', 'AlleleCount_D3S1358', 
+                    'AlleleCount_D8S1179', 'MinNOC_Penta D', 'MinNOC_Penta E', 
+                    'SumAF_TH01', 'AlleleCount_TPOX', 'MinNOC_TPOX', 
+                    'stdHeight_vWA', 'stdAllele', 'MAC0', 'MAC5-6', 
+                    'peaksBelowRFU', 'MatchKans', 'MinNOC', 'NOC']
 
-    def read_file(self):
         with open(self.file_path) as json_file:
             dictionary = json.load(json_file)
 
@@ -59,13 +73,21 @@ class DataAnalyzer:
         flat_df.columns = new_column_names
 
         # Filter features to only include the ones specified in features
-        data = flat_df[self.features]    
+        data = flat_df[features]    
         data.set_index('index', inplace=True)
         data.index.name = None
         
         # Split X from y.
         self.X = data.drop('NOC', axis=1)
         self.y = data['NOC'].astype(float)
+
+class DataAnalyzer:
+    X = None
+    y = None
+    
+    def __init__(self, data_reader):
+        self.X = data_reader.X
+        self.y = data_reader.y
 
     def plot_feature_correlations(self):
         plt.figure(figsize=(40,20))
@@ -104,10 +126,3 @@ class DataAnalyzer:
                                       frames=np.arange(0, 360, angle), 
                                       interval=50)
         ani.save('lda.gif', writer=animation.PillowWriter(fps=20))
-
-
-
-
-
-#data_analyzer.plot_feature_correlations()
-#data_analyzer.plot_lda()
