@@ -39,6 +39,12 @@ class DataReader:
         """
         raise NotImplementedError
 
+    def print_instance_histogram(self, name):
+        """
+           Must be implemented for each type of file
+        """
+        raise NotImplementedError
+
 class DataReader19Features(DataReader):
 
     def __init__(self, file_path, test_fraction):
@@ -80,6 +86,14 @@ class DataReader19Features(DataReader):
         # Split X from y.
         self.X = data.drop('NOC', axis=1)
         self.y = data['NOC'].astype(float)
+
+    def plot_instance(self, name):
+        dropped = self.X.drop(columns=['stdHeight_vWA'])
+        sample = dropped.loc[name,:]
+        columns = dropped.columns
+        fig, ax = plt.subplots(figsize=(40, 20), tight_layout=True)
+        ax.bar(columns, sample)
+        plt.savefig(name+".png")
 
 class DataAnalyzer:
     X = None

@@ -21,6 +21,8 @@ current_y = predictor.get_new_prediction(X_test.iloc[0])
 print("Generating counterfactuals for :", current_X)
 print("With prediction :", current_y)
 
-
 counterfactual_generator = CounterfactualGenerator(predictor)
-counterfactual_generator.calculate_counterfactuals(current_X, current_y, 4.0)
+counterfactual_generator.calculate_counterfactuals(current_X, current_y, 3.0)
+data_reader.plot_instance(current_X.name)
+data_reader.plot_instance("3.13")
+data_reader.plot_instance("3.34")
