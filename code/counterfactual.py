@@ -36,7 +36,17 @@ class CounterfactualGenerator:
                                   name=candidate.name)
             candidate_scores = candidate_scores.append(new_row)
         
-        self.get_non_dominated(candidate_scores)
+        non_dominated = self.get_non_dominated(candidate_scores)
+        
+        for i in non_dominated:
+            cost = candidate_scores.loc[i]
+            if cost['target_score'] == 0:
+                print("counterfactual option ", i, "with distance from " ,
+                    current_X.name, "of: ", cost['distance_score'], "and ", 
+                    cost['features_changed'], "features changed")
+
+                diff = self.calculate_differences(self.candidates.loc[i], current_X)
+                print("with differences: ", diff)
 
         #candidate_scores.sort_values(by=['target_score', 'distance_score', 
         #                                 'features_changed'], inplace = True)
@@ -74,51 +84,16 @@ class CounterfactualGenerator:
                 non_dominated_set.append(label)
             i+=1
         
-        print(non_dominated_set)
-        for i in non_dominated_set:
-            print(costs.loc[i])
+        return non_dominated_set
 
+    def calculate_differences(self, counterfactual, current_X):
+        mask = counterfactual.index.isin(['NOC'])
+        counterfactual = counterfactual.loc[~mask]
+        counterfactual.rename({counterfactual.name:current_X.name}, inplace=True)
 
-    # def dominates(self, obj1, obj2, sign=[-1, -1]):
-    #     dominates = False
-    #     for a, b, sign in zip(obj1, obj2, sign):
-    #         if a * sign > b * sign:
-    #             dominates = True
-    #         # if one of the objectives is dominated, then return False
-    #         elif a * sign < b * sign:
-    #             return False
-    #     return dominates
-
-    # def sortNondominated(candidates, k=None, first_front_only=True):
-    #     if k is None:
-    #         k = len(candidates)
-
-    #     # Use objectives as keys to make python dictionary
-    #     map_fit_ind = defaultdict(list)
-    #     for i, f_value in enumerate(fitness):  # fitness = [(1, 2), (2, 2), (3, 1), (1, 4), (1, 1)...]
-    #         map_fit_ind[f_value].append(i)
-    #     fits = list(map_fit_ind.keys())  # fitness values
-
-    #     current_front = []
-    #     next_front = []
-    #     dominating_fits = defaultdict(int)  # n (The number of people dominate you)
-    #     dominated_fits = defaultdict(list)  # Sp (The people you dominate)
-
-    #     # Rank first Pareto front
-    #     # *fits* is a iterable list of chromosomes. Each has multiple objectives.
-    #     for i, fit_i in enumerate(fits):
-    #         for fit_j in fits[i + 1:]:
-    #             # Eventhougn equals or empty list, n & Sp won't be affected
-    #             if dominates(fit_i, fit_j):
-    #                 dominating_fits[fit_j] += 1  
-    #                 dominated_fits[fit_i].append(fit_j)  
-    #             elif dominates(fit_j, fit_i):  
-    #                 dominating_fits[fit_i] += 1
-    #                 dominated_fits[fit_j].append(fit_i)
-    #         if dominating_fits[fit_i] == 0: 
-    #             current_front.append(fit_i)
-
-    #     fronts = [[]]  # The first front
-    #     for fit in current_front:
-    #         fronts[-1].extend(map_fit_ind[fit])
-    #     pareto_sorted = len(fronts[-1])
+        change = counterfactual.compare(current_X)
+        
+        diff_column = abs(change["self"] - change["other"])
+        change["difference"] = diff_column
+        
+        return change

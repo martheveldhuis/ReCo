@@ -88,12 +88,16 @@ class DataReader19Features(DataReader):
         self.y = data['NOC'].astype(float)
 
     def plot_instance(self, name):
-        dropped = self.X.drop(columns=['stdHeight_vWA'])
-        sample = dropped.loc[name,:]
-        columns = dropped.columns
+        sample = self.X.loc[name,:]
+        columns = self.X.columns
+
         fig, ax = plt.subplots(figsize=(40, 20), tight_layout=True)
+        fig.patch.set_facecolor('#E0E0E0')
+
         ax.bar(columns, sample)
-        plt.savefig(name+".png")
+        plt.yscale('log')
+
+        plt.savefig(name+".png", facecolor=fig.get_facecolor())
 
 class DataAnalyzer:
     X = None
@@ -104,10 +108,11 @@ class DataAnalyzer:
         self.y = data_reader.y
 
     def plot_feature_correlations(self):
-        plt.figure(figsize=(40,20))
+        fig = plt.figure(figsize=(40,20))
+        fig.patch.set_facecolor('#E0E0E0')
         sns.heatmap(self.X.astype(float).corr(),linewidths=0.1,vmax=1.0, 
                     square=True, linecolor='white', annot=True)
-        plt.savefig("correlations.png")
+        plt.savefig("correlations.png", facecolor=fig.get_facecolor())
         plt.show()
 
     def plot_lda(self):

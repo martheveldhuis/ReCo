@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from test import DataAnalyzer
 
 class Predictor:
@@ -17,7 +18,13 @@ class Predictor:
     def define_and_fit(self):
         raise NotImplementedError
 
-    def get_new_prediction(self, x):
+    def get_top2_predictions(self, x):
+        """
+        Paramters:
+            x: the input value
+        Returns:
+            tuple of floats: (first predicted class, secondary class)
+        """
         raise NotImplementedError
 
     def get_instances_predicted_as(self, desired_noc):
@@ -54,8 +61,51 @@ class RF19Predictor(Predictor):
         self.model.fit(self.X_train, self.y_train)
         self.y_pred = self.model.predict(self.X_train)
 
-    def get_new_prediction(self, x):
-        return self.model.predict(x.values.reshape(1, -1))
+    def get_top2_predictions(self, x):
+        probs = self.model.predict_proba(x.values.reshape(1, -1))[0]
+
+        highest_prob = np.max(probs)
+        top_pred = np.where(probs == highest_prob)[0][0] + 1# convert index to class
+
+        second_highest_prob = 0
+        second_pred = None
+        for i in range(probs.size):
+            if probs[i] > second_highest_prob and probs[i] < highest_prob:
+                second_highest_prob = probs[i]
+                second_pred = i + 1
+
+        return float(top_pred), float(second_pred)
+
+    def get_instances_predicted_as(self, desired_noc):
+        return self.X_train.loc[self.y_pred == desired_noc]
+
+
+class RF19RPredictor(Predictor):
+
+    def __init__(self, X_train, y_train):
+        super().__init__(X_train, y_train)
+        self.define_and_fit()
+
+    def define_and_fit(self):
+
+        self.model = RandomForestRegressor(bootstrap=True, max_depth=None, 
+                                           max_features='sqrt', 
+                                           min_samples_leaf=1, 
+                                           min_samples_split=2, 
+                                           n_estimators=200)
+
+        self.model.fit(self.X_train, self.y_train)
+        self.y_pred = self.model.predict(self.X_train)
+
+    def get_top2_predictions(self, x):
+        
+        current_y = self.model.predict(x.values.reshape(1, -1))[0]
+        
+        rounded_y = current_y.round()
+        if rounded_y > current_y: # e.g. 3.8 is rounded to 4.0, 2nd is 3.0
+            return rounded_y, rounded_y - 1
+        else:                     # e.g. 4.2 is rounded to 4.0, 2nd is 5.0
+            return rounded_y, rounded_y + 1
 
     def get_instances_predicted_as(self, desired_noc):
         return self.X_train.loc[self.y_pred == desired_noc]
