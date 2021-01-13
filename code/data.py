@@ -108,7 +108,7 @@ class DataAnalyzer:
         self.y = data_reader.y
 
     def plot_feature_correlations(self):
-        fig = plt.figure(figsize=(40,20))
+        fig = plt.figure(figsize=(15,15))
         fig.patch.set_facecolor('#E0E0E0')
         sns.heatmap(self.X.astype(float).corr(),linewidths=0.1,vmax=1.0, 
                     square=True, linecolor='white', annot=True)
@@ -125,7 +125,8 @@ class DataAnalyzer:
         lda_y = X_r2[:,1]
         lda_z = X_r2[:,2]
         labels = self.y
-        colors = {1:'red', 2:'green', 3:'blue', 4:'magenta', 5:'yellow'}
+        colors = {1:'tab:purple', 2:'tab:orange', 3:'tab:green', 4:'tab:red', 
+                  5:'tab:blue'}
   
         fig = plt.figure(figsize=(10,8))
         ax = plt.subplot(projection='3d')
@@ -145,3 +146,15 @@ class DataAnalyzer:
                                       frames=np.arange(0, 360, angle), 
                                       interval=50)
         ani.save('lda.gif', writer=animation.PillowWriter(fps=20))
+
+    def plot_feature_boxplots(self):
+
+        fig, ax = plt.subplots(nrows=1, ncols=19, figsize=(30, 5), tight_layout=True)
+        fig.patch.set_facecolor('#E0E0E0')
+
+        for i in range(self.X.columns.size):
+            ax[i].boxplot(self.X[self.X.columns[i]])
+            ax[i].set_xlabel(self.X.columns[i])
+
+        plt.savefig("features.png", facecolor=fig.get_facecolor())
+        plt.show()
