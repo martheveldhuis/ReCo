@@ -8,12 +8,14 @@ import sklearn
 from sklearn.manifold import TSNE
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 class DataReader:
     file_path = None
     X = None
     y = None
     test_fraction = None
+    scaler = None
 
     def __init__(self, file_path, test_fraction):
         self.file_path = file_path
@@ -87,6 +89,9 @@ class DataReader19Features(DataReader):
         self.X = data.drop('NOC', axis=1)
         self.y = data['NOC'].astype(float)
 
+        # Set a scaler
+        self.scaler = StandardScaler().fit(self.X)
+
     def plot_instance(self, name):
         sample = self.X.loc[name,:]
         columns = self.X.columns
@@ -110,8 +115,9 @@ class DataAnalyzer:
     def plot_feature_correlations(self):
         fig = plt.figure(figsize=(15,15))
         fig.patch.set_facecolor('#E0E0E0')
-        sns.heatmap(self.X.astype(float).corr(),linewidths=0.1,vmax=1.0, 
-                    square=True, linecolor='white', annot=True)
+        sns.heatmap(self.X.astype(float).corr(), linewidths=0.1, vmin=-1.0,
+                    vmax=1.0, square=True, linecolor='white', annot=True, 
+                    cmap="PiYG")
         plt.savefig("correlations.png", facecolor=fig.get_facecolor())
         plt.show()
 

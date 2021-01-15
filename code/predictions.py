@@ -30,6 +30,8 @@ class Predictor:
     def get_instances_predicted_as(self, desired_noc):
         raise NotImplementedError
 
+    
+
 class RF19Predictor(Predictor):
 
     def __init__(self, X_train, y_train):
