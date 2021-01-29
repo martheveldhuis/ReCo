@@ -1,49 +1,55 @@
-from data import DataReader19Features
-from data import DataAnalyzer
-from predictions import RF19Predictor
-from predictions import RF19RPredictor
+
+
+from data import Dataset
+# Our custom implemented data reader behaviour
+from datareader_19_features import DataReader19Features
+# The predictors that we are going to use
+from sklearn_predictors import RFC19
+from sklearn_predictors import RFR19
+# Anchors explainer
+from anchors import AnchorsGenerator
+# Counterfactual explainer
 from counterfactual import CounterfactualGenerator
-from collections import Counter
 
-file_path = r"D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590.txt"
-data_reader = DataReader19Features(file_path, 0.2)
+# Define which file to read, test fraction, and the custom data reader.
+file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590.txt'
+test_fraction = 0.2
+data_reader = DataReader19Features(file_path, test_fraction)
 
-X_train, X_test, y_train, y_test = data_reader.get_split_data()
-print("training data X: ", X_train.shape, "y: ", y_train.shape)
-print("testing data X: ", X_test.shape, "y: ", y_test.shape)
-#print("training data has these counts per class: ", Counter(y_train))
-#print("testing data has these counts per class: ", Counter(y_test))
+# Lines below should not have to change.
+dataset = Dataset(data_reader.read_data())
+# print(dataset.get_features_min_max())
+# print(dataset.get_features_mad())
+# dataset.plot_feature_correlations()
+# dataset.plot_feature_boxplots()
+# dataset.plot_feature_histograms()
+# dataset.plot_lda()
 
-# analyzer = DataAnalyzer(data_reader)
-# analyzer.plot_feature_correlations()
-# analyzer.plot_lda()
-# analyzer.plot_feature_boxplots()
+# Define predictors to use, provide it with a dataset to fit on.
+rf_classifier = RFC19(dataset, "RFC19.sav")
+rf_regressor = RFR19(dataset, "RFR19.sav")
 
-predictor = RF19Predictor(X_train, y_train)
-regressor = RF19RPredictor(X_train, y_train)
+# Pick the data point you want to have explained.
+data_point = dataset.test_data.iloc[0] # 0 (NOC 4, unsure), 4 same ones(NOC 1, sure), 
+                                       # 8 is terrible (NOC 5, sure), 9 is interesting (diff reg/class)
 
-scaler = data_reader.scaler
+# Define Anchors generators (1 generator must be fitted to 1 predictor).
+anchors_generator_c = AnchorsGenerator(dataset, rf_classifier)
+anchors_generator_r = AnchorsGenerator(dataset, rf_regressor)
 
-counterfactual_generator_reg = CounterfactualGenerator(regressor, scaler)
-counterfactual_generator_class = CounterfactualGenerator(predictor, scaler)
+# Generate Anchors and print them.
+anchor_c = anchors_generator_c.generate_basic_anchor(data_point)
+anchor_r = anchors_generator_r.generate_basic_anchor(data_point)
+anchor_c.print_anchor_text()
+anchor_r.print_anchor_text()
 
-current_X = X_test.iloc[0]
-current_y_reg, target_y_reg = regressor.get_top2_predictions(current_X)
-print("Generating counterfactuals for :", current_X.name)
-print("With prediction :", current_y_reg, 
-      "And secondary prediction :", target_y_reg)
-counterfactual_generator_reg.calculate_counterfactuals(current_X, 
-                                                       current_y_reg, 
-                                                       target_y_reg)
+# Define counterfactual generators (1 generator must be fitted to 1 predictor).
+CF_generator_c = CounterfactualGenerator(dataset, rf_classifier)
+CF_generator_r = CounterfactualGenerator(dataset, rf_regressor)
 
-current_y_class, target_y_class = predictor.get_top2_predictions(current_X)
-print("Generating counterfactuals for profile :", current_X.name)
-print("With prediction :", current_y_class, 
-      "And secondary prediction :", target_y_class)
-counterfactual_generator_class.calculate_counterfactuals(current_X, 
-                                                         current_y_class, 
-                                                         target_y_class)
+CF_generator_c.generate_nondominated_train_counterfactuals(data_point)
+CF_generator_r.generate_nondominated_train_counterfactuals(data_point)
 
-# data_reader.plot_instance(current_X.name)
-# data_reader.plot_instance("5.02")
-#data_reader.plot_instance("5B5.3")
+
+#####################################OLD#############################
+# look at: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
