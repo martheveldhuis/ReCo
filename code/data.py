@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 class DataReader:
     """An interface for data reader behaviour."""
@@ -30,6 +32,8 @@ class Dataset:
         :param outcome_name: string of outcome feature name.
         :param test_size: proportion of test set (optional: default is 0.2).
         """
+        # Turn off matplotlib interactive mode to prevent it from popping up.
+        plt.ioff()
 
         if isinstance(params['data'], pd.DataFrame):
             self.data = params['data']
@@ -52,6 +56,9 @@ class Dataset:
             self.test_size = 0.2
 
         self.train_data, self.test_data = self.split_data(self.data)
+        self.scaled_train_data, self.scaled_test_data = self.scale_data(
+            self.train_data, self.test_data)
+        
 
     def split_data(self, data):
         """Split the data into training and testing datasets, stratify on outcome"""
@@ -65,6 +72,26 @@ class Dataset:
 
         return train_df, test_df
 
+    def scale_data(self, train_data, test_data):
+        """Standardize features by removing the mean and scaling to unit variance."""
+
+        # Fit on training data only.
+        # scaler = StandardScaler().fit(train_data[self.feature_names])
+        scaler = MinMaxScaler().fit(train_data[self.feature_names])
+        scaled_train_data = scaler.transform(train_data[self.feature_names])
+        scaled_test_data = scaler.transform(test_data[self.feature_names])
+
+        scaled_train_data_df = pd.DataFrame(data=scaled_train_data, columns=self.feature_names)
+        scaled_train_data_df.index = train_data.index
+        scaled_train_data_df[self.outcome_name] = train_data[self.outcome_name]
+
+        scaled_test_data_df = pd.DataFrame(data=scaled_test_data, columns=self.feature_names)
+        scaled_test_data_df.index = test_data.index
+        scaled_test_data_df[self.outcome_name] = test_data[self.outcome_name]
+
+        return scaled_train_data_df, scaled_test_data_df
+
+
     def get_features_min_max(self):
         """Generate a dataframe with min and max values of each feature.
 
@@ -74,8 +101,8 @@ class Dataset:
 
         # Get each feature's min and max values.
         for feature_name in self.feature_names:
-            min = self.data[feature_name].min()
-            max = self.data[feature_name].max()
+            min = self.train_data[feature_name].min()
+            max = self.train_data[feature_name].max()
             min_max_list.append([min, max])
 
         # Create dataframe from list of lists in correct format
@@ -92,9 +119,9 @@ class Dataset:
         mads = {}
 
         for feature_name in self.feature_names:
-            med = np.median(self.data[feature_name].values)
+            med = np.median(self.train_data[feature_name].values)
             # Compute the deviation from median for each feature value.
-            dev_from_med = abs(self.data[feature_name].values - med)
+            dev_from_med = abs(self.train_data[feature_name].values - med)
             # The MAD = the median of the deviations.
             mad = np.median(dev_from_med)
             # To avoid division by zero, and any negative values.
@@ -109,11 +136,10 @@ class Dataset:
 
         fig = plt.figure(figsize=(15,15))
         fig.patch.set_facecolor('#E0E0E0')
-        sns.heatmap(self.data.astype(float).corr(), linewidths=0.1, vmin=-1.0,
+        sns.heatmap(self.train_data.astype(float).corr(), linewidths=0.1, vmin=-1.0,
                     vmax=1.0, square=True, linecolor='white', annot=True, 
                     cmap="PiYG")
-        plt.savefig("correlations.png", facecolor=fig.get_facecolor())
-        plt.show()
+        plt.savefig(r'results\correlations.png', facecolor=fig.get_facecolor())
 
     def plot_feature_boxplots(self):
         """Plot boxplot for each feature."""
@@ -123,11 +149,10 @@ class Dataset:
         fig.patch.set_facecolor('#E0E0E0')
 
         for i in range(num_features):
-            ax[i].boxplot(self.data[self.data.columns[i]])
-            ax[i].set_xlabel(self.data.columns[i])
+            ax[i].boxplot(self.train_data[self.train_data.columns[i]])
+            ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig("boxplots.png", facecolor=fig.get_facecolor(), bbox_inches='tight')
-        plt.show()
+        plt.savefig(r'results\boxplots.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_feature_histograms(self):
         """Plot histogram for each feature."""
@@ -137,26 +162,39 @@ class Dataset:
         fig.patch.set_facecolor('#E0E0E0')
 
         for i in range(num_features):
-            ax[i].hist(self.data[self.data.columns[i]], bins=50)
-            ax[i].set_xlabel(self.data.columns[i])
+            ax[i].hist(self.train_data[self.train_data.columns[i]], bins=50)
+            ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig("histograms.png", facecolor=fig.get_facecolor(), bbox_inches='tight')
-        plt.show()
+        plt.savefig(r'results\histograms.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+
+    def plot_feature_violin(self):
+        """Plot violin plots for each feature."""
+
+        num_features = len(self.feature_names)
+        fig, ax = plt.subplots(nrows=1, ncols=num_features, figsize=(50, 2))
+        fig.patch.set_facecolor('#E0E0E0')
+
+        for i in range(num_features):
+            ax[i].violinplot(self.scaled_train_data[self.train_data.columns[i]], widths=0.9,
+                        showmeans=False, showextrema=False, showmedians=False)
+            ax[i].set_xlabel(self.train_data.columns[i])
+
+        plt.savefig(r'results\violins.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_lda(self):
         """Generate a gif from LDA"""
 
         # Initialize LDA in 3D, fit on data.
         lda = LinearDiscriminantAnalysis(n_components=3)
-        lda_data = lda.fit(self.data[self.feature_names], 
-                           self.data[self.outcome_name]).transform(self.data[self.feature_names])
+        lda_data = lda.fit(self.train_data[self.feature_names], 
+                           self.train_data[self.outcome_name]).transform(self.train_data[self.feature_names])
         print("Explained variance with 3 components: ", lda.explained_variance_ratio_)
 
         # Label based on outcome (1-5).
         lda_x = lda_data[:,0]
         lda_y = lda_data[:,1]
         lda_z = lda_data[:,2]
-        labels = self.data[self.outcome_name].values
+        labels = self.train_data[self.outcome_name].values
         colors = {1:'tab:purple', 2:'tab:orange', 3:'tab:green', 4:'tab:red', 5:'tab:blue'}
   
         # Define the graph.
@@ -178,4 +216,4 @@ class Dataset:
         ani = animation.FuncAnimation(fig, rotate, 
                                       frames=np.arange(0, 360, angle), 
                                       interval=50)
-        ani.save('lda.gif', writer=animation.PillowWriter(fps=20))  
+        ani.save(r'results\lda.gif', writer=animation.PillowWriter(fps=20))  

@@ -48,7 +48,7 @@ class AnchorsGenerator:
 
         # Helper function required for Anchors.
         def anchor_prediction(x):
-            return self.predictor.get_prediction(x).round() # to deal with regression
+            return self.predictor.get_prediction(x) # to deal with regression
 
         # Generate the explanation.
         data_point_np = data_point_X.to_numpy()
@@ -61,6 +61,30 @@ class AnchorsGenerator:
         anchor = Anchor(data_point_X, top_pred, top_prob, self.predictor.model_name, 
                         expl.names(), expl.precision(), expl.coverage())
         return anchor
+    
+    def generate_basic_cf_anchor(self, data_point):
+
+        # Ensure we only use the features, not the outcome.
+        data_point_X = data_point[self.dataset.feature_names]
+
+        # Helper function required for Anchors (will not actually be used here).
+        def anchor_prediction(x):
+            return self.predictor.get_prediction(x).round() # to deal with regression
+
+        # Get the predictions.
+        top_pred, top_prob, second_pred, second_prob = self.predictor.get_top2_predictions(data_point_X)
+
+        # Generate the explanation for the cf outcome.
+        data_point_np = data_point_X.to_numpy()
+        expl = self.explainer.explain_instance(data_point_np, anchor_prediction, threshold=0.9, 
+                                               desired_label=second_pred)
+
+        
+        # Create the Anchors object.
+        anchor = Anchor(data_point_X, second_pred, second_prob, self.predictor.model_name, 
+                        expl.names(), expl.precision(), expl.coverage())
+        return anchor
+
 
 
 class Anchor:
@@ -118,9 +142,21 @@ class Anchor:
     def print_anchor_text(self):
         """Simple print of anchor"""
 
-        print('Profile ' + self.data_point.name + 
-              ' was predicted by model ' + self.model_name + ' to have {}'.format(int(self.pred)) + 
+        print('\nProfile ' + self.data_point.name + 
+              ' was predicted by model ' + self.model_name + 
+              ' to have {}'.format(int(round(self.pred))) + # for regression
               ' contributors, with a probability of {:.2f}'.format(self.prob) + '.')
-        print('The model will predict {}'.format(int(self.pred)) + 
+        print('The model will predict {}'.format(int(round(self.pred))) + # for regression
+              ' contributors {}'.format(int(self.precision*100)) + '% of the time' +
+              ' when ALL the following rules are true: \n%s ' % ' \n'.join(self.feature_ranges))
+
+    def print_cf_anchor_text(self):
+        """Simple print of cf anchor"""
+
+        print('\nProfile ' + self.data_point.name + 
+              ' had a secondary prediction by model ' + self.model_name + 
+              ' to have {}'.format(int(round(self.pred))) + # for regression
+              ' contributors, with a probability of {:.2f}'.format(self.prob) + '.')
+        print('The model will predict {}'.format(int(round(self.pred))) + # for regression
               ' contributors {}'.format(int(self.precision*100)) + '% of the time' +
               ' when ALL the following rules are true: \n%s ' % ' \n'.join(self.feature_ranges))

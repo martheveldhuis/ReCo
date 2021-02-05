@@ -59,6 +59,11 @@ class DataReader19Features(DataReader):
         data.index.name = None
         data = data.astype(float)
 
+        # Translate features to more understandable strings.
+        with open('feature_translations.json') as json_file:
+            translations = json.load(json_file)
+        data.rename(columns = translations, inplace = True)
+
         # Grab the outcome- and feature names.
         outcome_name = 'NOC'
         feature_names = data.columns[~data.columns.isin([outcome_name])].values.tolist()

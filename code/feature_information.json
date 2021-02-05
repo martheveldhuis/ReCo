@@ -1,0 +1,24 @@
+{
+    "MAC":"MAC",
+    "TAC":"TAC",
+    "MinNOC_CSF1PO":"Minimal NOC (allele count / 2, rounded up) at CSF1PO",
+    "MinNOC_D16S539":"Minimal NOC (allele count / 2, rounded up) at D16S539",
+    "PercAF_D1S1656":"Percentage of alleles at D1S1656 present in the population database",
+    "AlleleCount_D3S1358":"Allele count at D3S135",
+    "AlleleCount_D8S1179":"Allele count at D8S1179",
+    "MinNOC_Penta D":"Minimal NOC (allele count / 2, rounded up) at Penta D",
+    "MinNOC_Penta E":"Minimal NOC (allele count / 2, rounded up) at Penta E",
+    "SumAF_TH01":"Sum of frequencies of the alleles at TH01 defined in the population database",
+    "AlleleCount_TPOX":"Allele count at TPOX",
+    "MinNOC_TPOX":"Minimal NOC (allele count / 2, rounded up) at TPOX",
+    "stdHeight_vWA":"Variation (standard deviation) of peak heights at vWA",
+    "stdAllele":"Variation (standard deviation) of the number of alleles per locus",
+    "MAC0":"Number of loci with 0 alleles",
+    "MAC5-6": "Number of loci with 5 or 6 alleles",
+    "peaksBelowRFU":"Number of peaks below the stochastic threshold of 800 RFU",
+    "MatchKans":"Probability of a random Dutch person matching to this DNA profile",
+    "MinNOC":"Minimal NOC (allele count / 2, rounded up)",
+    "NOC":"NOC"
+}
+
+

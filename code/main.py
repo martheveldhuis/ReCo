@@ -1,5 +1,3 @@
-
-
 from data import Dataset
 # Our custom implemented data reader behaviour
 from datareader_19_features import DataReader19Features
@@ -20,6 +18,7 @@ data_reader = DataReader19Features(file_path, test_fraction)
 dataset = Dataset(data_reader.read_data())
 # print(dataset.get_features_min_max())
 # print(dataset.get_features_mad())
+# dataset.plot_feature_violin()
 # dataset.plot_feature_correlations()
 # dataset.plot_feature_boxplots()
 # dataset.plot_feature_histograms()
@@ -30,8 +29,9 @@ rf_classifier = RFC19(dataset, "RFC19.sav")
 rf_regressor = RFR19(dataset, "RFR19.sav")
 
 # Pick the data point you want to have explained.
-data_point = dataset.test_data.iloc[0] # 0 (NOC 4, unsure), 4 same ones(NOC 1, sure), 
-                                       # 8 is terrible (NOC 5, sure), 9 is interesting (diff reg/class)
+data_point = dataset.test_data.loc['1B3.3'] 
+# data_point = dataset.test_data.iloc[0] 
+# print(data_point)
 
 # Define Anchors generators (1 generator must be fitted to 1 predictor).
 anchors_generator_c = AnchorsGenerator(dataset, rf_classifier)
@@ -51,5 +51,4 @@ CF_generator_c.generate_nondominated_train_counterfactuals(data_point)
 CF_generator_r.generate_nondominated_train_counterfactuals(data_point)
 
 
-#####################################OLD#############################
-# look at: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
+# inspiration for code: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
