@@ -37,7 +37,9 @@ class CounterfactualGenerator:
            :param data_point: a pandas Series object for the instance we want to explain.
         """
         data_point_X = data_point[self.dataset.feature_names]
-        data_point_scaled = self.dataset.scaled_test_data[self.dataset.feature_names].loc[data_point.name]
+        data_point_scaled = pd.Series(self.dataset.scaler.transform(data_point_X.to_numpy().reshape(1, -1)).ravel())
+        data_point_scaled.name = data_point_X.name
+        data_point_scaled.index = data_point_X.index
 
         # Get the data point's top and second-best, counterfactual (cf), prediction.
         best_pred, best_prob, cf_pred, cf_prob = self.predictor.get_top2_predictions(data_point_X)
@@ -69,11 +71,11 @@ class CounterfactualGenerator:
         non_dominated_profiles = self.get_non_dominated(candidate_scores)
         for profile in non_dominated_profiles:
             # We do not want counterfactuals with 10 or more feature changes.
-            if candidate_scores['features_changed'].loc[profile] < 10:
+            #if candidate_scores['features_changed'].loc[profile] < 10:
                 # Create counterfactual instance.
-                # print('profile '+profile+ 'with {}'.format(candidate_scores['features_changed'].loc[profile]) +
-                # 'features changed and {}'.format(candidate_scores['distance_score'].loc[profile]) + 
-                # 'target score')
+                print('profile '+profile+ 'with {}'.format(candidate_scores['features_changed'].loc[profile]) +
+                'features changed and {}'.format(candidate_scores['distance_score'].loc[profile]) + 
+                'target score')
                 self.counterfactuals = Counterfactual(data_point_X, data_point_scaled, best_pred, best_prob,
                                                       cf_pred, cf_prob, 
                                                       self.dataset.train_data[self.dataset.feature_names].loc[profile], 
@@ -257,7 +259,7 @@ class Counterfactual:
 
         # Rename to match data point (so it doesn't come up as a difference).
         counterfactual = self.counterfactual_scaled
-        counterfactual.rename({counterfactual.name:self.data_point_scaled.name}, inplace=True)
+        counterfactual.rename(self.data_point_scaled.name, inplace=True)
 
         # Only keep features that are different.
         compare = self.data_point_scaled.compare(counterfactual)
@@ -369,7 +371,7 @@ class Counterfactual:
 
         # Plot the bars for the scaled data point
         dp_bars = ax.barh(dp.index, dp_scaled, color='w', alpha=1, edgecolor='tab:gray')
-        ax.set_xticklabels([]) # remove x-valuesnewidth=0.1)
+        ax.set_xticklabels([]) # remove x-values
         plt.gca().invert_yaxis() # put first feature at the top
         labels = ax.get_yticklabels()
 
@@ -389,9 +391,9 @@ class Counterfactual:
             # Add changes to barchart.
             if dp_feature_name in changes.index:
                 diff = changes.loc[dp_feature_name].difference
-                # # Move label over if either value is too close to 0.
-                # if cf_scaled_val < 0.08 or dp_scaled_val < 0.08:
-                #     #labels[i].set_x(labels[i].get_position()[0] - 0.08) 
+                # Move label over if either value is too close to 0.
+                if cf_scaled_val < 0.06 or dp_scaled_val < 0.06:
+                    labels[i].set_x(labels[i].get_position()[0] - 0.06) 
                 #     ax.set_xlim(-0.08,1.08)
                 #     ax.axvline(0, lw=0.5, color='tab:gray')
                 # Input value needs to be increased to match counterfactual.

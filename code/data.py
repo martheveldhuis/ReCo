@@ -73,11 +73,12 @@ class Dataset:
         return train_df, test_df
 
     def scale_data(self, train_data, test_data):
-        """Standardize features by removing the mean and scaling to unit variance."""
+        """Scale and translate each feature individually such that it is between zero and one."""
 
         # Fit on training data only.
         # scaler = StandardScaler().fit(train_data[self.feature_names])
         scaler = MinMaxScaler().fit(train_data[self.feature_names])
+        self.scaler = scaler
         scaled_train_data = scaler.transform(train_data[self.feature_names])
         scaled_test_data = scaler.transform(test_data[self.feature_names])
 
