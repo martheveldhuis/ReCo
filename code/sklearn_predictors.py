@@ -76,15 +76,19 @@ class RFC19(Predictor):
 
         # Calculate accuracy score.
         acc = accuracy_score(train_y.to_numpy(), self.train_pred)
-        print('Accuracy of model ' + self.model_name + ' is {:.3f}'.format(acc))
+        print('Accuracy of model ' + self.model_name + ' on training data is {:.3f}'.format(acc))
 
         # Store the correctly predicted data points by selecting the indices where 
         # the prediction matches the ground truth, making a subset of the training data.
         correct_pred = []
+        incorrect_pred = []
         for i in range(len(self.train_pred)):
             if self.train_pred[i] == train_y.iloc[i]:
                 correct_pred.append(i)
-        self.correct_pred = self.dataset.train_data.iloc[correct_pred, :]       
+            else:
+                incorrect_pred.append(i)
+        self.correct_pred = self.dataset.train_data.iloc[correct_pred, :]
+        self.incorrect_pred = self.dataset.train_data.iloc[incorrect_pred, :]          
 
     def get_top2_predictions(self, x):
         """Get the top 2 predictions and their probabilities
@@ -124,9 +128,16 @@ class RFC19(Predictor):
         train_data_corr = self.correct_pred[self.correct_pred[self.dataset.outcome_name] == noc]
         return train_data_corr
 
+    def get_pred_proba(self, x): 
+        """Just a wrapper for the predict proba function."""
+        if isinstance(x, pd.Series):
+            return self.model.predict_proba(x.values.reshape(1, -1))[0]
+        else:
+            return self.model.predict_proba(x)
+
 
 class RFR19(Predictor):
-    """Implementation of Predictor for the RFC19 sklearn model."""
+    """Implementation of a random forest regressor sklearn model, using 19 features."""
 
     def __init__(self, dataset, model_file):
         """Init method
@@ -152,11 +163,10 @@ class RFR19(Predictor):
         """Defines a RF regressor"""
 
         # These parameters originate from a quick grid search
-        self.model = RandomForestRegressor(bootstrap=True, max_depth=None, 
-                                           max_features='sqrt', 
-                                           min_samples_leaf=1, 
-                                           min_samples_split=2, 
-                                           n_estimators=200)
+        # self.model = RandomForestRegressor(max_features='sqrt', 
+        #                                    n_estimators=200)
+
+        self.model = RandomForestRegressor()
 
         X_train = self.dataset.train_data[self.dataset.feature_names]
         y_train = self.dataset.train_data[self.dataset.outcome_name]
@@ -184,15 +194,20 @@ class RFR19(Predictor):
         # Calculate accuracy score by using the rounded predictions.
         train_pred_rounded = self.train_pred.round()
         acc = accuracy_score(train_y.to_numpy(), train_pred_rounded)
-        print('Accuracy of model ' + self.model_name + ' is {:.3f}'.format(acc))
+        print('Accuracy of model ' + self.model_name + 'on training data is {:.3f}'.format(acc))
 
         # Store the correctly predicted data points by selecting the indices where the
         # (rounded) prediction matches the ground truth, making a subset of the training data.
         correct_pred = []
+        incorrect_pred = []
         for i in range(len(train_pred_rounded)):
             if train_pred_rounded[i] == train_y.iloc[i]:
                 correct_pred.append(i)
-        self.correct_pred = self.dataset.train_data.iloc[correct_pred, :]        
+            else:
+                incorrect_pred.append(i)
+        self.correct_pred = self.dataset.train_data.iloc[correct_pred, :]
+        self.incorrect_pred = self.dataset.train_data.iloc[incorrect_pred, :]        
+
 
     def get_top2_predictions(self, x):
         """Get the top 2 predictions based on the regression values

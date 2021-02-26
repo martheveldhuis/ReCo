@@ -71,19 +71,105 @@ class CounterfactualGenerator:
         non_dominated_profiles = self.get_non_dominated(candidate_scores)
         for profile in non_dominated_profiles:
             # We do not want counterfactuals with 10 or more feature changes.
-            #if candidate_scores['features_changed'].loc[profile] < 10:
+            if candidate_scores['features_changed'].loc[profile] < 10:
                 # Create counterfactual instance.
                 print('profile '+profile+ 'with {}'.format(candidate_scores['features_changed'].loc[profile]) +
-                'features changed and {}'.format(candidate_scores['distance_score'].loc[profile]) + 
-                'target score')
+                ' features changed and {}'.format(candidate_scores['distance_score'].loc[profile]) + 
+                ' distance score')
                 self.counterfactuals = Counterfactual(data_point_X, data_point_scaled, best_pred, best_prob,
                                                       cf_pred, cf_prob, 
                                                       self.dataset.train_data[self.dataset.feature_names].loc[profile], 
                                                       self.dataset.scaled_train_data[self.dataset.feature_names].loc[profile],
-                                                      candidate_scores.loc[profile],
                                                       self.predictor.model_name)
                 
+    def generate_local_avg_train_counterfactual(self, data_point, n):
+        """Generate a counterfactual by taking the average of n closest local training points with 
+           the target prediction.
+
+           :param data_point: a pandas Series object for the instance we want to explain.
+           :param n: the number of training points to calculate the average from.
+        """
+        feature_names = self.dataset.feature_names
+        data_point_X = data_point[feature_names]
+        data_point_scaled = pd.Series(self.dataset.scaler.transform(data_point_X.to_numpy().reshape(1, -1)).ravel())
+        data_point_scaled.name = data_point_X.name
+        data_point_scaled.index = data_point_X.index
+
+        # Get the data point's top and second-best, counterfactual (cf), prediction.
+        best_pred, best_prob, cf_pred, cf_prob = self.predictor.get_top2_predictions(data_point_X)
         
+        # Find profiles classified as cf prediction.
+        candidates = self.predictor.get_data_corr_predicted_as(cf_pred).index
+
+        # Create dataframe to store scores.
+        columns = ['target_score', 'distance_score', 'features_changed']
+        candidate_scores = pd.DataFrame(columns = columns)
+
+        # Calculate all scores for each candidate data point.
+        for candidate in candidates:
+            candidate_X = self.dataset.train_data[feature_names].loc[candidate]
+            candidate_pred = self.predictor.get_prediction(candidate_X)
+
+            target_score = self.calculate_target_score(candidate_pred, cf_pred)
+            distance_score = self.calculate_distance_score(candidate_X, data_point_X)
+            features_changed = self.calculate_features_changed(candidate_X, data_point_X)
+            
+            # Put together into a series and append to dataframe as as row.
+            new_row = pd.Series({'target_score':target_score, 
+                                 'distance_score':distance_score, 
+                                 'features_changed':features_changed},
+                                  name=candidate)
+            candidate_scores = candidate_scores.append(new_row)
+
+        # Sum the scores and sort by ascending order.
+        candidate_scores['sum'] = candidate_scores.sum(axis=1)
+        candidate_scores.sort_values(by='sum', inplace=True)
+
+        # Get top counterfactual from non-dominated profiles.
+        non_dominated_profiles = self.get_non_dominated(candidate_scores)
+        non_dom_candidates = candidate_scores.loc[non_dominated_profiles]
+        cf = non_dom_candidates.iloc[0].copy()
+
+        # Calculate the average feature values of the n top candidates.
+        top_n_names = candidate_scores.head(n).index
+        top_n = self.dataset.train_data.loc[top_n_names]
+        avg_instance = top_n.median(axis=0)[feature_names]
+        avg_instance.name = 'avg{}'.format(n)
+        avg_instance_scaled = pd.Series(self.dataset.scaler.transform(avg_instance.to_numpy().reshape(1, -1)).ravel())
+        avg_instance_scaled.index = feature_names
+        avg_instance_scaled.name = 'avg{}'.format(n)
+
+        # Get the CF sample and tune it.
+        original_cf = self.dataset.train_data[self.dataset.feature_names].loc[cf.name].copy()
+
+        i = 0
+        for d_v, cf_v in zip(data_point_X, original_cf):
+            feature_name = feature_names[i]
+            if d_v != cf_v:
+                direction_cf = d_v - cf_v
+                direction_avg = d_v - avg_instance[feature_name]
+                if direction_cf * direction_avg < 0.0: # Check that we are not going against avg.
+                    original_cf[feature_name] = d_v
+            i+=1
+
+        # Check the prediction
+        print('new prediction: ')
+        print(self.predictor.get_prediction(original_cf))
+
+        scaled_cf = pd.Series(self.dataset.scaler.transform(original_cf.to_numpy().reshape(1, -1)).ravel())
+        scaled_cf.index = feature_names
+        
+        # Create counterfactual
+        # self.counterfactuals = Counterfactual(data_point_X, data_point_scaled, best_pred, best_prob,
+        #                                       cf_pred, cf_prob, avg_instance, avg_instance_scaled,
+        #                                       self.predictor.model_name)
+        self.counterfactuals = Counterfactual(data_point_X, data_point_scaled, best_pred, best_prob,
+                                                cf_pred, cf_prob, original_cf, scaled_cf, 
+                                                self.predictor.model_name)
+        
+        return avg_instance
+
+
     def calculate_target_score(self, candidate_pred, target_pred):
         """Score between counterfactual (cf) candidate pred score and cf target.
            Note that the candidate score can be a regression score, so that 
@@ -138,11 +224,12 @@ class CounterfactualGenerator:
         :param data_point: the data point's feature values.
         """
         
+        num_features = len(data_point.index)
         count = 0
         for c, t in zip(candidate, data_point):
             if c != t:
                 count += 1
-        return count
+        return count/num_features
     
     def get_non_dominated(self, costs):
         """Find the non dominated profiles based on their 3 cost scores.
@@ -169,7 +256,7 @@ class Counterfactual:
 
     def __init__(self, data_point, data_point_scaled, pred, prob, 
                  target_pred, target_prob, counterfactual, counterfactual_scaled, 
-                 scores, model_name):
+                 model_name):
         """Init method
 
         :param data_point: pandas series of the data point we are explaining with this counterfactual.
@@ -180,7 +267,6 @@ class Counterfactual:
         :param target_prob: float for the probability of the target prediction.
         :param counterfactual: pandas series of the counterfactual data point.
         :param counterfactual_scaled: pandas series of the scaled counterfactual data point.
-        :param scores: dataframe of the 3 scores for this counterfactual.
         :param model_name: string representing the model.
 
         """
@@ -224,11 +310,6 @@ class Counterfactual:
         else: 
             raise ValueError("should provide scaled counterfactual data point in a pandas series")
 
-        if isinstance(scores, pd.Series):
-            self.scores = scores
-        else: 
-            raise ValueError("should provide scores in a pandas series")
-
         if type(model_name) is str:
             self.model_name = model_name
         else:
@@ -242,11 +323,13 @@ class Counterfactual:
         """Calculate the pairwise changes between data point and counterfactual."""
 
         # Rename to match data point (so it doesn't come up as a difference).
-        counterfactual = self.counterfactual
-        counterfactual.rename({counterfactual.name:self.data_point.name}, inplace=True)
+        counterfactual = self.counterfactual.copy()
+        data_point = self.data_point.copy()
+        counterfactual.name = ''
+        data_point.name = ''
 
         # Only keep features that are different.
-        compare = self.data_point.compare(counterfactual)
+        compare = data_point.compare(counterfactual)
         
         # Add column to show how the data point would need to change to become the counterfactual.
         diff_column = (compare["other"] - compare["self"])
@@ -258,11 +341,13 @@ class Counterfactual:
         """Calculate the pairwise changes between data point and counterfactual."""
 
         # Rename to match data point (so it doesn't come up as a difference).
-        counterfactual = self.counterfactual_scaled
-        counterfactual.rename(self.data_point_scaled.name, inplace=True)
+        counterfactual = self.counterfactual_scaled.copy()
+        data_point = self.data_point_scaled.copy()
+        counterfactual.name = ''
+        data_point.name = ''
 
         # Only keep features that are different.
-        compare = self.data_point_scaled.compare(counterfactual)
+        compare = data_point.compare(counterfactual)
         
         # Add column to show how the data point would need to change to become the counterfactual.
         diff_column = (compare["other"] - compare["self"])
@@ -299,7 +384,7 @@ class Counterfactual:
                 ' contributors, with a probability of {:.2f}'.format(self.target_prob) +
                 '.\nProfile ' + self.data_point.name +  
                 ' would have been predicted to have {}'.format(round(self.target_pred)) + 
-                ' contributors, if the following feature values were different.')
+                ' contributors, if all following feature values were different.')
                 #it had the feature values shown below.')
         return title
 
@@ -365,9 +450,10 @@ class Counterfactual:
         cf_scaled = self.counterfactual_scaled
         
         # Set up figure.
-        fig, ax = plt.subplots(figsize=(18,9))
+        fig, ax = plt.subplots(figsize=(18,9)) # this might need to be changed when dealing with more/less features.
         fig.suptitle(self.get_title(), x=0.13, ha='left')
         fig.patch.set_facecolor('#E0E0E0')
+        plt.xlim([0,1]) # ensure the scale is always the same.
 
         # Plot the bars for the scaled data point
         dp_bars = ax.barh(dp.index, dp_scaled, color='w', alpha=1, edgecolor='tab:gray')
@@ -432,6 +518,6 @@ class Counterfactual:
         
         # Save figure.
         fig.tight_layout()
-        plt.savefig(r'results\counterfactual_v2_' + self.model_name + '.png', 
+        plt.savefig(r'results\cf' + self.counterfactual.name + '.png', 
                     facecolor=fig.get_facecolor(), bbox_inches='tight')
 

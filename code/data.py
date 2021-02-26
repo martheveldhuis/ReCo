@@ -28,6 +28,7 @@ class Dataset:
 
         dictionary containing all parameters.
         :param data: Pandas DataFrame with column names as feature names, row names as profiles.
+        :param name: string of the file name.
         :param feature_names: list of strings with feature names.
         :param outcome_name: string of outcome feature name.
         :param test_size: proportion of test set (optional: default is 0.2).
@@ -39,6 +40,11 @@ class Dataset:
             self.data = params['data']
         else:
             raise ValueError('should provide data in a pandas dataframe')
+
+        if type(params['name']) is str:
+            self.file_name = params['name']
+        else:
+            raise ValueError('should provide the name of the file')
 
         if type(params['feature_names']) is list:
             self.feature_names = params['feature_names']
@@ -135,12 +141,12 @@ class Dataset:
     def plot_feature_correlations(self):
         """Plot the pairwise feature correlations."""
 
-        fig = plt.figure(figsize=(15,15))
+        fig = plt.figure(figsize=(18,18))
         fig.patch.set_facecolor('#E0E0E0')
-        sns.heatmap(self.train_data.astype(float).corr(), linewidths=0.1, vmin=-1.0,
+        sns.heatmap(self.train_data.astype(float).corr(method='kendall'), linewidths=0.1, vmin=-1.0,
                     vmax=1.0, square=True, linecolor='white', annot=True, 
                     cmap="PiYG")
-        plt.savefig(r'results\correlations.png', facecolor=fig.get_facecolor())
+        plt.savefig(r'results\correlations_kendall_' + self.file_name + '.png', facecolor=fig.get_facecolor())
 
     def plot_feature_boxplots(self):
         """Plot boxplot for each feature."""
@@ -153,7 +159,7 @@ class Dataset:
             ax[i].boxplot(self.train_data[self.train_data.columns[i]])
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\boxplots.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'results\boxplots_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_feature_histograms(self):
         """Plot histogram for each feature."""
@@ -166,7 +172,7 @@ class Dataset:
             ax[i].hist(self.train_data[self.train_data.columns[i]], bins=50)
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\histograms.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'results\histograms_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_feature_violin(self):
         """Plot violin plots for each feature."""
@@ -180,9 +186,9 @@ class Dataset:
                         showmeans=False, showextrema=False, showmedians=False)
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\violins.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'results\violins_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
-    def plot_lda(self):
+    def plot_lda_3d(self):
         """Generate a gif from LDA"""
 
         # Initialize LDA in 3D, fit on data.
@@ -217,4 +223,33 @@ class Dataset:
         ani = animation.FuncAnimation(fig, rotate, 
                                       frames=np.arange(0, 360, angle), 
                                       interval=50)
-        ani.save(r'results\lda.gif', writer=animation.PillowWriter(fps=20))  
+        ani.save(r'results\lda_' + self.file_name + '.gif', writer=animation.PillowWriter(fps=20))  
+
+    def plot_lda_2d(self):
+        """Generate an LDA plot"""
+
+        # Initialize LDA in 3D, fit on data.
+        lda = LinearDiscriminantAnalysis(n_components=2)
+        lda_data = lda.fit(self.train_data[self.feature_names], 
+                           self.train_data[self.outcome_name]).transform(self.train_data[self.feature_names])
+        print("Explained variance with 2 components: ", lda.explained_variance_ratio_)
+
+        # Label based on outcome (1-5).
+        lda_x = lda_data[:,0]
+        lda_y = lda_data[:,1]
+        labels = self.train_data[self.outcome_name].values
+        colors = {1:'tab:purple', 2:'tab:orange', 3:'tab:green', 4:'tab:red', 5:'tab:blue'}
+  
+        # Define the graph.
+        fig = plt.figure(figsize=(10,8))
+        ax = plt.subplot()
+
+        for l in np.unique(labels):
+            i = np.where(labels==l)
+            ax.scatter(lda_x[i], lda_y[i], c=colors[l], alpha=0.1)
+
+        plt.xlabel("LDA 1",fontsize=14)
+        plt.ylabel("LDA 2",fontsize=14)
+        
+        plt.savefig(r'results\lda2d_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        return lda
