@@ -230,8 +230,13 @@ class RFR19(Predictor):
 
         if rounded_y > current_y: # e.g. 3.8 is rounded to 4.0, 2nd option is 3.0
             return current_y, certainty, rounded_y - 1, second_certainty
-        else:                     # e.g. 4.2 is rounded to 4.0, 2nd option is 5.0
+        elif rounded_y < current_y: # e.g. 4.2 is rounded to 4.0, 2nd option is 5.0
             return current_y, certainty, rounded_y + 1, second_certainty
+        
+        if rounded_y == 5:
+            return current_y, certainty, rounded_y - 1, second_certainty
+
+        return current_y, certainty, rounded_y + 1, second_certainty
     
     def get_prediction(self, x):
         """Just a wrapper for the predict function."""

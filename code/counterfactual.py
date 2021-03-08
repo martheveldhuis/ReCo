@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.colors as mcolors
 
 from data import Dataset
 from predictor import Predictor
@@ -82,7 +83,7 @@ class CounterfactualGenerator:
                                                       self.dataset.scaled_train_data[self.dataset.feature_names].loc[profile],
                                                       self.predictor.model_name)
                 
-    def generate_local_avg_train_counterfactual(self, data_point, n):
+    def generate_local_avg_train_counterfactual(self, data_point, n, shap_values):
         """Generate a counterfactual by taking the average of n closest local training points with 
            the target prediction.
 
@@ -100,19 +101,22 @@ class CounterfactualGenerator:
         
         # Find profiles classified as cf prediction.
         candidates = self.predictor.get_data_corr_predicted_as(cf_pred).index
+        candidates_X = self.dataset.train_data[feature_names].loc[candidates]
+        candidate_predictions = self.predictor.get_prediction(candidates_X)
 
         # Create dataframe to store scores.
         columns = ['target_score', 'distance_score', 'features_changed']
         candidate_scores = pd.DataFrame(columns = columns)
 
         # Calculate all scores for each candidate data point.
+        i=0
         for candidate in candidates:
-            candidate_X = self.dataset.train_data[feature_names].loc[candidate]
-            candidate_pred = self.predictor.get_prediction(candidate_X)
+            candidate_X = candidates_X.loc[candidate]
+            candidate_pred = candidate_predictions[i]
 
-            target_score = self.calculate_target_score(candidate_pred, cf_pred)
-            distance_score = self.calculate_distance_score(candidate_X, data_point_X)
-            features_changed = self.calculate_features_changed(candidate_X, data_point_X)
+            target_score = self.calculate_target_score(candidate_pred, best_pred)
+            distance_score, features_changed = self.calculate_distance_score(candidate_X, data_point_X)
+            #features_changed = self.calculate_features_changed(candidate_X, data_point_X)
             
             # Put together into a series and append to dataframe as as row.
             new_row = pd.Series({'target_score':target_score, 
@@ -121,9 +125,13 @@ class CounterfactualGenerator:
                                   name=candidate)
             candidate_scores = candidate_scores.append(new_row)
 
+            i+=1
+
         # Sum the scores and sort by ascending order.
         candidate_scores['sum'] = candidate_scores.sum(axis=1)
-        candidate_scores.sort_values(by='sum', inplace=True)
+        candidate_scores.sort_values(by='target_score', inplace=True)
+        print(candidate_scores.iloc[0])
+        print(candidate_scores.iloc[1])
 
         # Get top counterfactual from non-dominated profiles.
         non_dominated_profiles = self.get_non_dominated(candidate_scores)
@@ -142,15 +150,15 @@ class CounterfactualGenerator:
         # Get the CF sample and tune it.
         original_cf = self.dataset.train_data[self.dataset.feature_names].loc[cf.name].copy()
 
-        i = 0
-        for d_v, cf_v in zip(data_point_X, original_cf):
-            feature_name = feature_names[i]
-            if d_v != cf_v:
-                direction_cf = d_v - cf_v
-                direction_avg = d_v - avg_instance[feature_name]
-                if direction_cf * direction_avg < 0.0: # Check that we are not going against avg.
-                    original_cf[feature_name] = d_v
-            i+=1
+        # i = 0
+        # for d_v, cf_v in zip(data_point_X, original_cf):
+        #     feature_name = feature_names[i]
+        #     if d_v != cf_v:
+        #         direction_cf = d_v - cf_v
+        #         direction_avg = d_v - avg_instance[feature_name]
+        #         if direction_cf * direction_avg < 0.0: # Check that we are not going against avg.
+        #             original_cf[feature_name] = d_v
+        #     i+=1
 
         # Check the prediction
         print('new prediction: ')
@@ -165,7 +173,7 @@ class CounterfactualGenerator:
         #                                       self.predictor.model_name)
         self.counterfactuals = Counterfactual(data_point_X, data_point_scaled, best_pred, best_prob,
                                                 cf_pred, cf_prob, original_cf, scaled_cf, 
-                                                self.predictor.model_name)
+                                                self.predictor.model_name, shap_values)
         
         return avg_instance
 
@@ -206,14 +214,18 @@ class CounterfactualGenerator:
         :param data_point: the data point's feature values.
         """
 
+        num_features_changed = 0
         features_min_max = self.dataset.get_features_min_max()
-        score = 0
+        score = 0        
         for feature in features_min_max.columns:
             dist = abs(candidate[feature] - data_point[feature])
             max_scaled_dist = dist / (features_min_max[feature].loc['max'])
-            score += max_scaled_dist
+            if max_scaled_dist > 0.05: # Allow for 5% tolerance
+                score += max_scaled_dist
+                num_features_changed += 1
         score = score / len(features_min_max.columns)
-        return score
+        changed = num_features_changed / len(features_min_max.columns)
+        return score, changed
 
     def calculate_features_changed(self, candidate, data_point):
         """Count of how many features are changed between the original data point and the 
@@ -256,7 +268,7 @@ class Counterfactual:
 
     def __init__(self, data_point, data_point_scaled, pred, prob, 
                  target_pred, target_prob, counterfactual, counterfactual_scaled, 
-                 model_name):
+                 model_name, shap_values):
         """Init method
 
         :param data_point: pandas series of the data point we are explaining with this counterfactual.
@@ -317,7 +329,7 @@ class Counterfactual:
 
         self.changes = self.calculate_changes()
         #self.plot_own_axis()
-        self.plot_one_axis()
+        self.plot_one_axis(shap_values)
 
     def calculate_changes(self):
         """Calculate the pairwise changes between data point and counterfactual."""
@@ -373,19 +385,23 @@ class Counterfactual:
 
         print(table.T)
 
-    def get_title(self):
+    def get_title(self, classification=False):
         """Define a title string based on the Counterfactual."""
         
+        # For classification, we can add the probabilities of the first and second predictions.
+        probability_string = ''
+        if(classification):
+            probability_string = (' with a probability of {:.2f}'.format(self.prob) +
+                            '. The next best prediction is {}'.format(int(self.target_pred)) +
+                            ' contributors, with a probability of {:.2f}'.format(self.target_prob))
+
         title = ('The profile ' + self.data_point.name + 
                 ' was predicted by model ' + self.model_name +
-                ' to have {}'.format(round(self.pred)) + # for regression
-                ' contributors with a probability of {:.2f}'.format(self.prob) +
-                '. The next best prediction is {}'.format(int(self.target_pred)) +
-                ' contributors, with a probability of {:.2f}'.format(self.target_prob) +
+                ' to have {}'.format(self.pred) + 
+                ' contributors' + probability_string +
                 '.\nProfile ' + self.data_point.name +  
                 ' would have been predicted to have {}'.format(round(self.target_pred)) + 
                 ' contributors, if all following feature values were different.')
-                #it had the feature values shown below.')
         return title
 
     def get_figure_handles(self):
@@ -438,7 +454,7 @@ class Counterfactual:
         fig.tight_layout()
         plt.savefig(r'results\counterfactual_v1.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
-    def plot_one_axis(self):
+    def plot_one_axis(self, shap_values):
         """Create a figure where each feature value change from data point to counterfactual
            is in one figure.
         """
@@ -450,16 +466,35 @@ class Counterfactual:
         cf_scaled = self.counterfactual_scaled
         
         # Set up figure.
-        fig, ax = plt.subplots(figsize=(18,9)) # this might need to be changed when dealing with more/less features.
+        fig, ax = plt.subplots(figsize=(18,9), constrained_layout=False) # this might need to be changed when dealing with more/less features.
         fig.suptitle(self.get_title(), x=0.13, ha='left')
         fig.patch.set_facecolor('#E0E0E0')
-        plt.xlim([0,1]) # ensure the scale is always the same.
+        
+        # Set up colors.
+        # colormap = plt.get_cmap('RdBu') # looks too much like our arrow colors
+        # colormap = plt.get_cmap('BrBG')
+        colormap = plt.get_cmap('coolwarm_r')
+        offset = mcolors.TwoSlopeNorm(vmin=-0.8, vcenter=0., vmax=0.8)
+        colors = offset(shap_values)    
+
+        
 
         # Plot the bars for the scaled data point
-        dp_bars = ax.barh(dp.index, dp_scaled, color='w', alpha=1, edgecolor='tab:gray')
+        dp_bars = ax.barh(dp.index, dp_scaled, color=colormap(colors), alpha=1, edgecolor='#E0E0E0')
         ax.set_xticklabels([]) # remove x-values
+        ax.set_xlim([0,1.06]) # ensure the scale is always the same, and fits the text (+0.06)
         plt.gca().invert_yaxis() # put first feature at the top
         labels = ax.get_yticklabels()
+
+        # Create a color bar legend.
+        mappable = plt.cm.ScalarMappable(norm=offset, cmap=colormap)
+        mappable.set_array([])
+        colorbar = plt.colorbar(mappable, shrink = 0.8, label = 'Influence of feature values on this prediction')
+        colorbar.set_ticks([-0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8])
+        cb_labels = ['\N{MINUS SIGN}0.8','\N{MINUS SIGN}0.6',
+                     '\N{MINUS SIGN}0.4','\N{MINUS SIGN}0.2',
+                     '0.0', '+0.2', '+0.4', '+0.6', '+0.8']
+        colorbar.set_ticklabels(cb_labels)
 
         # Get the scaled changes.
         changes = self.calculate_scaled_changes()
@@ -473,20 +508,19 @@ class Counterfactual:
             
             bar_y = dp_bar.get_y()
             bar_height = dp_bar.get_height()
+            bar_color = dp_bar.get_facecolor()
 
             # Add changes to barchart.
             if dp_feature_name in changes.index:
                 diff = changes.loc[dp_feature_name].difference
                 # Move label over if either value is too close to 0.
-                if cf_scaled_val < 0.06 or dp_scaled_val < 0.06:
+                if cf_scaled_val < 0.04 or dp_scaled_val < 0.04:
                     labels[i].set_x(labels[i].get_position()[0] - 0.06) 
-                #     ax.set_xlim(-0.08,1.08)
-                #     ax.axvline(0, lw=0.5, color='tab:gray')
                 # Input value needs to be increased to match counterfactual.
                 if diff > 0:
                     # Stack on top
                     ax.barh(dp_feature_name, diff, left=dp_scaled_val,
-                            color='w', alpha=1, edgecolor='tab:gray')
+                            color='w', alpha=1, edgecolor='#E0E0E0')
                     # Put data point value text inside bar.
                     ax.text(dp_bar.get_width()-0.01, bar_y+bar_height/2.,
                             '{:.4g}'.format(dp_feature_val), ha='right', va='center')
@@ -500,7 +534,7 @@ class Counterfactual:
                 # Input value needs to be decreased to match counterfactual.
                 else:
                     ax.barh(dp_feature_name, abs(diff), left=dp_scaled_val+diff,
-                            color='w', alpha=1, edgecolor='tab:gray')
+                            color=bar_color, alpha=1, edgecolor='w')
                     # Put data point value text outside bar.
                     ax.text(dp_bar.get_width()+0.01, bar_y+bar_height/2.,
                             '{:.4g}'.format(dp_feature_val), ha='left', va='center')
@@ -518,6 +552,6 @@ class Counterfactual:
         
         # Save figure.
         fig.tight_layout()
-        plt.savefig(r'results\cf' + self.counterfactual.name + '.png', 
+        plt.savefig(r'results\cf_' + dp.name + '_' + cf.name + '.png', 
                     facecolor=fig.get_facecolor(), bbox_inches='tight')
 

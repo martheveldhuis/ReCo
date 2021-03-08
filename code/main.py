@@ -1,19 +1,19 @@
 import numpy as np
 import pandas as pd
+import math
 import shap
 import matplotlib.pyplot as plt
 from datetime import datetime
-# Our dataset object that contains all necessary data information.
+
 from data import Dataset
-# Our custom implemented data reader behaviour.
 from datareader_19_features import DataReader19Features
-# The predictors that we are going to use.
 from sklearn_predictors import RFC19
 from sklearn_predictors import RFR19
-# Anchors explainer.
 from anchors import AnchorsGenerator
-# Counterfactual explainer.
 from counterfactual import CounterfactualGenerator
+from shap_values import ShapGenerator
+
+# inspiration for code: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
 
 ################################ DATA READING ################################
 
@@ -27,7 +27,7 @@ data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
 data_reader_merged = DataReader19Features(file_path_merged, test_fraction)
 
 # Get stats of 590 dataset
-# dataset = Dataset(data_reader.read_data())
+dataset = Dataset(data_reader.read_data())
 # print(dataset.data.shape)
 # print(dataset.get_features_min_max()
 # print(dataset.get_features_mad())
@@ -66,84 +66,70 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 
 
 # Define predictors to use, provide it with a dataset to fit on.
-# rf_classifier = RFC19(dataset, 'RFC19.sav')
-# rf_regressor = RFR19(dataset, 'RFR19.sav')
-model = RFR19(dataset_merged, 'RFR19_merged.sav')
+rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # Pick the data point you want to have explained.
-# data_point = dataset.test_data.iloc[3] # 1 is profile 5B4.3, 3 is profile 2.44
-data_point = dataset_merged.test_data.iloc[6] # 0 is profile 5.56, 4 is profile 4.11 (4vs5), 6 still inconsistent.
+# data_point = dataset_merged.test_data.loc['5.79'] # actual NOC is 4, rf_regressor predict 5, rf_merged predicts
+data_point = dataset_merged.test_data.iloc[20] # 0 is profile 5.56, 20 has no CF?!
 print(data_point)
-print(model.get_prediction(data_point[dataset_merged.feature_names]))
-# data_point = dataset.test_data.loc['2.44']
+print(rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names]))
 
+
+################################ ANCHORS ################################
 
 # Define Anchors generators (1 generator must be fitted to 1 predictor).
-# anchors_generator_c = AnchorsGenerator(dataset, rf_classifier)
+# anchors_generator_c = AnchorsGenerator(dataset_merged, model)
 
 # Generate Anchors and print them.
 # anchor = anchors_generator_c.generate_basic_anchor(data_point)
 # anchor.plot_anchor()
 # anchor.print_anchor_text()
 
-# test_point = data_point.copy()
-# test_point = [6.00000000e+00, 9.70000000e+01, 2.00000000e+00, 2.00000000e+00,
-#  1.66204986e+00, 4.00000000e+00, 5.00000000e+00, 2.00000000e+00,
-#  2.00000000e+00, 6.69784174e-01, 4.00000000e+00, 2.00000000e+00,
-#  2.81340979e+03, 9.16143805e-01, 0.00000000e+00, 5.00000000e+00,
-#  1.40000000e+01, 8.00000000e-10, 1.00000000e+00]
-# test_point = np.array(test_point).reshape(1, -1)
-# print('test point is: ')
-# print(rf_classifier.get_prediction(test_point))
 
-# cf_data_point = dataset.train_data.loc['2.41']
-# anchor_cf = anchors_generator_c.generate_basic_anchor(cf_data_point)
-# anchor_cf.print_anchor_text()
+################################ SHAP ################################
 
+# Compute SHAP values
+shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
+shap_values = shap_generator.get_shap_values(data_point)
 
-# data_point['Loci with 5-6 alleles'] = 2.0
-# data_point['Random match probability'] = 0.0002
-
-# print(rf_regressor.get_prediction(data_point[dataset.feature_names]))
-
-
-# print('Anchors took {}'.format((anchors_end_time-start_time).total_seconds()) + ' to compute')
-
+################################ COUNTERFACTUALS ################################
 
 start_time = datetime.now()
 
 # Define counterfactual generators (1 generator must be fitted to 1 predictor).
-# CF_generator_c = CounterfactualGenerator(dataset, rf_classifier)
-CF_generator_r = CounterfactualGenerator(dataset_merged, model)
+CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 # CF_generator_r.generate_nondominated_train_counterfactuals(data_point)
-CF_generator_r.generate_local_avg_train_counterfactual(data_point, n=50)
+CF_generator.generate_local_avg_train_counterfactual(data_point, 100, shap_values)
 
 end_time = datetime.now()
 print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
 
 
-# inspiration for code: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
-# shap.initjs()
-# X_train_summary = shap.kmeans(dataset_merged.train_data[dataset_merged.feature_names], 300)
+# import matplotlib.colors as mcolors
+# shap_values = [0.0, 0.1, 0.4, -0.2, 0.0,
+#                0.0, 0.1, 0.4, -0.2, 0.0,
+#                0.0, 0.1, 0.4, -0.2, 0.0,
+#                0.0, 0.1, 0.4, -0.2]
+# dp = data_point[dataset_merged.feature_names]
+# data_point_scaled = pd.Series(dataset_merged.scaler.transform(dp.to_numpy().reshape(1, -1)).ravel())
+
+# fig, ax = plt.subplots(figsize=(15,9), constrained_layout=True)
 
 
-# explainer = shap.KernelExplainer(rf_classifier.get_pred_proba, dataset.train_data[dataset.feature_names])
-# explainer = shap.KernelExplainer(rf_regressor.get_prediction, dataset.train_data[dataset.feature_names])
-# explainer = shap.KernelExplainer(model.get_prediction, X_train_summary)
+# colormap = plt.get_cmap('coolwarm_r')
+# offset = mcolors.TwoSlopeNorm(vmin=-0.6, vcenter=0., vmax=0.6)
+# colors = offset(shap_values)
 
-# shap_values = explainer.shap_values(cf_data_point[dataset_merged.feature_names])
-# f=shap.force_plot(explainer.expected_value, shap_values, cf_data_point[dataset_merged.feature_names], show=False)
-# shap.save_html("index3.html", f)
+# ax.barh(dp.index, data_point_scaled, color=colormap(colors), alpha=1)
 
-# shap.force_plot(explainer.expected_value[0], shap_values[0], data_point[dataset.feature_names])
-# shap.force_plot(explainer.expected_value, shap_values, data_point[dataset.feature_names])#, show=False, matplotlib=True)
-#shap.save_html("index.html", f)
-#print(shap_values)
-#shap.plots.waterfall(shap_values[0])
-# plt.savefig("gg.png",bbox_inches='tight')
+# sm = plt.cm.ScalarMappable(norm=offset, cmap=colormap)
+# sm.set_array([])
 
-# cf = dataset_merged.train_data.loc['3.69']
-# shap_values = explainer.shap_values(cf[dataset_merged.feature_names])
-# f2=shap.force_plot(explainer.expected_value, shap_values, cf[dataset_merged.feature_names], show=False)
-# shap.save_html("index2.html", f2)
+# plt.colorbar(sm)
+
+# # fig.colorbar(sm,
+# #              cax=ax, orientation='vertical', fraction=0.001,
+# #              label='How strongly features push the prediction up or down')
+
+# plt.show()
