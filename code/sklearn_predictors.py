@@ -2,9 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 import pickle
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import accuracy_score
+
 from predictor import Predictor
 from data import Dataset
 

@@ -146,7 +146,7 @@ class Dataset:
         sns.heatmap(self.train_data.astype(float).corr(method='kendall'), linewidths=0.1, vmin=-1.0,
                     vmax=1.0, square=True, linecolor='white', annot=True, 
                     cmap="PiYG")
-        plt.savefig(r'results\correlations_kendall_' + self.file_name + '.png', facecolor=fig.get_facecolor())
+        plt.savefig(r'data_analysis\correlations_kendall_' + self.file_name + '.png', facecolor=fig.get_facecolor())
 
     def plot_feature_boxplots(self):
         """Plot boxplot for each feature."""
@@ -159,7 +159,7 @@ class Dataset:
             ax[i].boxplot(self.train_data[self.train_data.columns[i]])
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\boxplots_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'data_analysis\boxplots_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_feature_histograms(self):
         """Plot histogram for each feature."""
@@ -172,7 +172,7 @@ class Dataset:
             ax[i].hist(self.train_data[self.train_data.columns[i]], bins=50)
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\histograms_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'data_analysis\histograms_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_feature_violin(self):
         """Plot violin plots for each feature."""
@@ -186,7 +186,7 @@ class Dataset:
                         showmeans=False, showextrema=False, showmedians=False)
             ax[i].set_xlabel(self.train_data.columns[i])
 
-        plt.savefig(r'results\violins_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'data_analysis\violins_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 
     def plot_lda_3d(self):
         """Generate a gif from LDA"""
@@ -223,7 +223,7 @@ class Dataset:
         ani = animation.FuncAnimation(fig, rotate, 
                                       frames=np.arange(0, 360, angle), 
                                       interval=50)
-        ani.save(r'results\lda_' + self.file_name + '.gif', writer=animation.PillowWriter(fps=20))  
+        ani.save(r'data_analysis\lda_' + self.file_name + '.gif', writer=animation.PillowWriter(fps=20))  
 
     def plot_lda_2d(self):
         """Generate an LDA plot"""
@@ -251,5 +251,5 @@ class Dataset:
         plt.xlabel("LDA 1",fontsize=14)
         plt.ylabel("LDA 2",fontsize=14)
         
-        plt.savefig(r'results\lda2d_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
+        plt.savefig(r'data_analysis\lda2d_' + self.file_name + '.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
         return lda

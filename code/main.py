@@ -69,8 +69,9 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # Pick the data point you want to have explained.
-# data_point = dataset_merged.test_data.loc['5.79'] # actual NOC is 4, rf_regressor predict 5, rf_merged predicts
-data_point = dataset_merged.test_data.iloc[20] # 0 is profile 5.56, 20 has no CF?!
+# data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
+data_point = dataset_merged.test_data.loc['5.79']
+# data_point = dataset_merged.test_data.iloc[20] # 0 is profile 5.56, 20 is trace x14.
 print(data_point)
 print(rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names]))
 
