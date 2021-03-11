@@ -16,7 +16,7 @@
     "MAC0":"Loci with 0 alleles",
     "MAC5-6":"Loci with 5-6 alleles",
     "peaksBelowRFU":"Peaks below 800 RFU",
-    "MatchProbability":"Random match probability",
+    "MatchProbability":"Random match proba.",
     "MinNOC":"Min. NOC",
     "NOC":"NOC"
 }

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import QuantileTransformer
 from sklearn.preprocessing import MinMaxScaler
 
 class DataReader:
@@ -62,8 +62,7 @@ class Dataset:
             self.test_size = 0.2
 
         self.train_data, self.test_data = self.split_data(self.data)
-        self.scaled_train_data, self.scaled_test_data = self.scale_data(
-            self.train_data, self.test_data)
+        self.scaled_train_data = self.scale_data(self.train_data)
         
 
     def split_data(self, data):
@@ -78,26 +77,34 @@ class Dataset:
 
         return train_df, test_df
 
-    def scale_data(self, train_data, test_data):
+    def scale_data(self, train_data):
         """Scale and translate each feature individually such that it is between zero and one."""
 
         # Fit on training data only.
         # scaler = StandardScaler().fit(train_data[self.feature_names])
-        scaler = MinMaxScaler().fit(train_data[self.feature_names])
+        scaler = QuantileTransformer().fit(train_data[self.feature_names])
         self.scaler = scaler
         scaled_train_data = scaler.transform(train_data[self.feature_names])
-        scaled_test_data = scaler.transform(test_data[self.feature_names])
 
         scaled_train_data_df = pd.DataFrame(data=scaled_train_data, columns=self.feature_names)
         scaled_train_data_df.index = train_data.index
         scaled_train_data_df[self.outcome_name] = train_data[self.outcome_name]
+        print(train_data['D1S1656 perc. known alleles'].max())
 
-        scaled_test_data_df = pd.DataFrame(data=scaled_test_data, columns=self.feature_names)
-        scaled_test_data_df.index = test_data.index
-        scaled_test_data_df[self.outcome_name] = test_data[self.outcome_name]
+        return scaled_train_data_df
 
-        return scaled_train_data_df, scaled_test_data_df
+    def scale_data_point(self, data_point):
+        """Translate 1 data point such that all its feature values are between zero and one."""
+        
+        data_point_scaled = pd.Series(self.scaler.transform(data_point[self.feature_names].to_numpy().reshape(1, -1)).ravel())
+        data_point_scaled.name = data_point.name
+        data_point_scaled.index = self.feature_names
+        
+        # Set any values > 1 to 1. This is only used in visualization.
+        data_point_scaled = data_point_scaled.where(data_point_scaled <= 1.0, 1.0)
+        #data_point_scaled.values = data_point_scaled.values.apply(> 1.0 else 1.0 for y in x])
 
+        return data_point_scaled
 
     def get_features_min_max(self):
         """Generate a dataframe with min and max values of each feature.
