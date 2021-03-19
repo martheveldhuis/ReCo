@@ -13,6 +13,7 @@ from anchors import AnchorsGenerator
 from counterfactual import CounterfactualGenerator
 from shap_values import ShapGenerator
 from visualization import Visualization
+from evaluation import Evaluator
 
 # inspiration for code: https://github.com/interpretml/DiCE/blob/f9a92f3cebf857fc589b63b98be56fc42faee904/dice_ml/diverse_counterfactuals.py
 
@@ -71,58 +72,86 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # Pick the data point you want to have explained.
-data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
+# data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
 # data_point = dataset_merged.train_data.loc['2C3.3']
 # data_point = dataset_merged.test_data.loc['5.79']
-# data_point = dataset_merged.test_data.iloc[20] # 0 is profile 5.56, 20 is trace x14.
-# data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
-print(data_point)
+# data_point = dataset_merged.test_data.iloc[4] # 0 is profile 5.56, 20 is trace x14.
+# # # data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
 
-# data_point['TAC'] = 96
-# data_point['vWa peak height variation'] = 430.1
-# data_point['allele count variation'] = 0.9161
-# data_point['Loci with 5-6 alleles'] = 10
-print(rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names]))
+# print(data_point)
+# dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
+# print(dp_pred)
 
 
-################################ ANCHORS ################################
+# ################################ ANCHORS ################################
 
-# Define Anchors generators (1 generator must be fitted to 1 predictor).
-# anchors_generator_c = AnchorsGenerator(dataset_merged, model)
+# # Define Anchors generators (1 generator must be fitted to 1 predictor).
+# # anchors_generator_c = AnchorsGenerator(dataset_merged, model)
 
-# Generate Anchors and print them.
-# anchor = anchors_generator_c.generate_basic_anchor(data_point)
-# anchor.plot_anchor()
-# anchor.print_anchor_text()
+# # Generate Anchors and print them.
+# # anchor = anchors_generator_c.generate_basic_anchor(data_point)
+# # anchor.plot_anchor()
+# # anchor.print_anchor_text()
 
 
-################################ SHAP ################################
+# ################################ SHAP ################################
 
-# Compute SHAP values
+# # # Compute SHAP values
 shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
-shap_values = shap_generator.get_shap_values(data_point)
+# dp_shap = shap_generator.get_shap_values(data_point)
 
-# Create the visualization
-data_point_scaled = dataset_merged.scale_data_point(data_point)
-data_point_X = data_point[dataset_merged.feature_names]
-prediction = rf_regressor_merged.get_prediction(data_point_X)
-print(prediction)
-visualization = Visualization(data_point_X, data_point_scaled, prediction, shap_values)
+# # Create the visualization
+# data_point_scaled = dataset_merged.scale_data_point(data_point)
+# data_point_X = data_point[dataset_merged.feature_names]
+# visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
 
-################################ COUNTERFACTUALS ################################
+# ################################ COUNTERFACTUALS ################################
 
 
-start_time = datetime.now()
+# # start_time = datetime.now()
+# # end_time = datetime.now()
+# # print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
 
-# Define counterfactual generators (1 generator must be fitted to 1 predictor).
+# # Define counterfactual generators (1 generator must be fitted to 1 predictor).
 CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
-cf, cf_scaled, cf_pred, changes = CF_generator.generate_counterfactual(data_point, 
-                                                                       data_point_scaled,
-                                                                       shap_values)
+# # Get the user's input for which NOC to generate the counterfactual.
+# def get_user_cf_target(dp_pred):
+#     while True:
+#         try:
+#             cf_target = float(int(input('Enter the NOC explanation you want to see for this profile (1-5): ')))
+#         except ValueError:
+#             print('You have entered an invalid NOC. Try a whole number between 1 and 5.')
+#         else:
+#             if cf_target == dp_pred.round():
+#                 print('You have entered the same NOC as the current prediction. Try another NOC.')
+#                 continue
+#             return cf_target
+
+# cf_target = get_user_cf_target(dp_pred)
+# cf, cf_scaled, cf_pred, changes = CF_generator.generate_counterfactual(data_point, 
+#                                                                       data_point_scaled, cf_target)
+
+# # cf, cf_scaled, cf_pred, changes = CF_generator.generate_avg_counterfactual(data_point, 
+# #                                                                       data_point_scaled, cf_target)
 
 
-end_time = datetime.now()
-print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
+# # # Add tolerance before plotting
+# cf_shap = shap_generator.get_shap_values(cf)
+# changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
 
-visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
+# new = data_point.copy()
+# for feature, row in changes.iterrows():
+#     new[feature] = cf[feature]
+# new_pred = rf_regressor_merged.get_prediction(new[dataset_merged.feature_names])
+# print('new pred: {:.2f}'.format(new_pred))
+
+# visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
+
+
+################################ EVALUATION ################################
+
+evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
+#evaluator.plot_distance_dist()
+evaluator.evaluate_weight()
+evaluator.evaluate_weight_no_tol()

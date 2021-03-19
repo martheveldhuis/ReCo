@@ -107,7 +107,10 @@ class Dataset:
         return data_point_scaled
 
     def get_features_min_max(self):
-        """Generate a dataframe with min and max values of each feature.
+        """
+            Generate a dataframe with min and max values of each feature.
+            Note that we take these values from the entire dataset we have available
+            If values 
 
             :return dataframe of min and max values per feature.
         """
@@ -115,8 +118,8 @@ class Dataset:
 
         # Get each feature's min and max values.
         for feature_name in self.feature_names:
-            min = self.train_data[feature_name].min()
-            max = self.train_data[feature_name].max()
+            min = self.data[feature_name].min()
+            max = self.data[feature_name].max()
             min_max_list.append([min, max])
 
         # Create dataframe from list of lists in correct format
