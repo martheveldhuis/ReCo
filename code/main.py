@@ -148,10 +148,47 @@ CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 # visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
 
+# CF_generator.generate_pareto_counterfactual(data_point, data_point_scaled, cf_target)
 
 ################################ EVALUATION ################################
 
 evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
+
+# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\avg1',
+#               r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\weight',
+#               r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\weight_no_tol']
+# for file in filesnames:
+#     # evaluator.plot_features(file)
+#     evaluator.plot_target_missed(file)
+#     evaluator.plot_dist_dp(file)
+#     evaluator.plot_dist_td(file)
+#     evaluator.plot_bad_shap(file)
+#     evaluator.plot_num_features(file)
+
+
 #evaluator.plot_distance_dist()
+
+
+
+start_time = datetime.now()
+evaluator.evaluate_avg()
+eval1 = (datetime.now() - start_time)
+start_time = datetime.now()
+
 evaluator.evaluate_weight()
+eval2 = (datetime.now() - start_time)
+start_time = datetime.now()
+
 evaluator.evaluate_weight_no_tol()
+eval3 = (datetime.now() - start_time)
+start_time = datetime.now()
+
+evaluator.evaluate_pareto()
+eval4 = (datetime.now() - start_time)
+
+print('Eval 1 took {} minutes'.format(eval1.total_seconds()/60))
+print('Eval 2 took {} minutes'.format(eval2.total_seconds()/60))
+print('Eval 3 took {} minutes'.format(eval3.total_seconds()/60))
+print('Eval 4 took {} minutes'.format(eval4.total_seconds()/60))
+
+

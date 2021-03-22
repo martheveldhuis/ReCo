@@ -24,6 +24,79 @@ class CounterfactualGenerator:
         else:
             raise ValueError("should provide predictor as Predictor instance")
     
+
+    def get_non_dominated(self, scores):
+        """
+        Find the non dominated training points (Pareto efficient).
+        :param scores: An (n_points, n_scores) array
+        :return: A string array of non dominated profile names.
+        """
+        non_dom_profiles = scores[:, 2].copy()
+        num_scores = np.array(scores[:, 0:2])
+        is_efficient = np.ones(scores.shape[0], dtype = bool)
+        for i, c in enumerate(num_scores):
+            if is_efficient[i]:
+                is_efficient[is_efficient] = np.any(num_scores[is_efficient]<c, axis=1)  # Keep any point with a lower cost
+                is_efficient[i] = True  # And keep self
+        
+        return non_dom_profiles[is_efficient]
+
+
+    def generate_pareto_counterfactual(self, data_point, data_point_scaled, cf_pred):
+        """Generate a counterfactual by calculating 2 scores and finding the Pareto optimum one.
+
+           :param data_point: a pandas Series object for the instance we want to explain.
+           :param data_point_scaled: a pandas Series object for the scaled instance we want to explain.
+        """
+        feature_names = self.dataset.feature_names
+        data_point_X = data_point[feature_names]
+
+        # Get the data point's top and second-best, counterfactual (cf), prediction.
+        data_point_pred = self.predictor.get_prediction(data_point_X)
+      
+        # Find profiles classified as cf prediction.
+        candidates_X = self.predictor.get_data_corr_predicted_as(cf_pred)[feature_names]
+        candidates = candidates_X.index
+        candidate_predictions = self.predictor.get_prediction(candidates_X)
+
+        # Create 2D array to store scores.
+        cand_distance = []
+        cand_features = []
+        profiles = []
+
+        # Calculate all scores for each candidate data point.
+        i=0
+        for candidate in candidates:
+            candidate_X = candidates_X.loc[candidate]
+            candidate_pred = candidate_predictions[i]
+
+            distance_score, features_changed = self.calculate_distance_score(candidate_X, data_point_X)
+            
+            cand_distance.append(distance_score)
+            cand_features.append(features_changed)
+            profiles.append(candidate)
+
+            i+=1
+
+        # Get the non-dominated profiles and pick the non-dom features
+        candidate_scores = np.array([cand_distance, cand_features, profiles]).T
+        non_dom = self.get_non_dominated(candidate_scores)
+        sorted_scores = candidate_scores[candidate_scores[:, 1].argsort()]
+
+        non_dom_indices = np.isin(sorted_scores[:, 2], non_dom)
+        non_dom_sorted = sorted_scores[non_dom_indices]
+        print(non_dom_sorted[0])
+        
+        cf = non_dom_sorted[0][2]
+
+        # Get the CF profile and calculate the changes.
+        original_cf = self.dataset.train_data.loc[cf].copy()
+        scaled_cf = self.dataset.scale_data_point(original_cf)
+        changes = self.calculate_scaled_changes(scaled_cf, data_point_scaled)
+
+        return original_cf, scaled_cf, cf_pred, changes
+
+
     def generate_weighted_counterfactual(self, data_point, data_point_scaled, cf_pred):
         """Generate a counterfactual by calculating 2 scores and summing them.
 
@@ -63,7 +136,7 @@ class CounterfactualGenerator:
             i+=1
 
         # Sum the scores and sort by ascending order.
-        candidate_scores['sum'] = candidate_scores['features_changed'] + 10 * candidate_scores['distance_score']
+        candidate_scores['sum'] = candidate_scores['features_changed'] + 6 * candidate_scores['distance_score']
         candidate_scores.sort_values(by='sum', inplace=True)
         cf = candidate_scores.iloc[0]
 
@@ -144,7 +217,7 @@ class CounterfactualGenerator:
             i+=1
 
         # Sum the scores and sort by ascending order.
-        candidate_scores['sum'] = candidate_scores['features_changed'] + 10 * candidate_scores['distance_score']
+        candidate_scores['sum'] = candidate_scores['features_changed'] + 6 * candidate_scores['distance_score']
         candidate_scores.sort_values(by='sum', inplace=True)
         cf = candidate_scores.iloc[0]
 
