@@ -76,7 +76,7 @@ rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 # data_point = dataset_merged.train_data.loc['2C3.3']
 # data_point = dataset_merged.test_data.loc['5.79']
 # data_point = dataset_merged.test_data.iloc[4] # 0 is profile 5.56, 20 is trace x14.
-# # # data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
+# data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
 
 # print(data_point)
 # dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
@@ -85,18 +85,18 @@ rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # ################################ ANCHORS ################################
 
-# # Define Anchors generators (1 generator must be fitted to 1 predictor).
-# # anchors_generator_c = AnchorsGenerator(dataset_merged, model)
+# Define Anchors generators (1 generator must be fitted to 1 predictor).
+# anchors_generator_c = AnchorsGenerator(dataset_merged, model)
 
-# # Generate Anchors and print them.
-# # anchor = anchors_generator_c.generate_basic_anchor(data_point)
-# # anchor.plot_anchor()
-# # anchor.print_anchor_text()
+# Generate Anchors and print them.
+# anchor = anchors_generator_c.generate_basic_anchor(data_point)
+# anchor.plot_anchor()
+# anchor.print_anchor_text()
 
 
 # ################################ SHAP ################################
 
-# # # Compute SHAP values
+# Compute SHAP values
 shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
 # dp_shap = shap_generator.get_shap_values(data_point)
 
@@ -108,14 +108,14 @@ shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
 # ################################ COUNTERFACTUALS ################################
 
 
-# # start_time = datetime.now()
-# # end_time = datetime.now()
-# # print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
+# start_time = datetime.now()
+# end_time = datetime.now()
+# print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
 
-# # Define counterfactual generators (1 generator must be fitted to 1 predictor).
+# Define counterfactual generators (1 generator must be fitted to 1 predictor).
 CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
-# # Get the user's input for which NOC to generate the counterfactual.
+# Get the user's input for which NOC to generate the counterfactual.
 # def get_user_cf_target(dp_pred):
 #     while True:
 #         try:
@@ -128,65 +128,60 @@ CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 #                 continue
 #             return cf_target
 
+# def wait_user_enter():
+#     while True:
+#         try:
+#             cf_target = input('Hit any key to continue.')
+#         except ValueError:
+#             print('Something went wrong')
+#         else:
+#             return
+
 # cf_target = get_user_cf_target(dp_pred)
-# cf, cf_scaled, cf_pred, changes = CF_generator.generate_counterfactual(data_point, 
-#                                                                       data_point_scaled, cf_target)
+# cf, cf_scaled, cf_pred, changes = CF_generator.generate_pareto_counterfactual(data_point, data_point_scaled, cf_target)
 
-# # cf, cf_scaled, cf_pred, changes = CF_generator.generate_avg_counterfactual(data_point, 
-# #                                                                       data_point_scaled, cf_target)
+# visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
+# #wait_user_enter()
 
 
-# # # Add tolerance before plotting
+# # Add tolerance before plotting
 # cf_shap = shap_generator.get_shap_values(cf)
 # changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
 
-# new = data_point.copy()
-# for feature, row in changes.iterrows():
-#     new[feature] = cf[feature]
-# new_pred = rf_regressor_merged.get_prediction(new[dataset_merged.feature_names])
-# print('new pred: {:.2f}'.format(new_pred))
+# visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
+#wait_user_enter()
 
-# visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
-
-# CF_generator.generate_pareto_counterfactual(data_point, data_point_scaled, cf_target)
 
 ################################ EVALUATION ################################
 
 evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
 
-# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\avg1',
-#               r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\weight',
-#               r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\weight_no_tol']
+# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\avg2']
 # for file in filesnames:
-#     # evaluator.plot_features(file)
-#     evaluator.plot_target_missed(file)
-#     evaluator.plot_dist_dp(file)
-#     evaluator.plot_dist_td(file)
+# #     evaluator.plot_features(file)
+# #     evaluator.plot_target_missed(file)
+# #     evaluator.plot_dist_dp(file)
+# #     evaluator.plot_dist_td(file)
 #     evaluator.plot_bad_shap(file)
 #     evaluator.plot_num_features(file)
 
 
-#evaluator.plot_distance_dist()
-
 
 
 start_time = datetime.now()
-evaluator.evaluate_avg()
-eval1 = (datetime.now() - start_time)
-start_time = datetime.now()
-
-evaluator.evaluate_weight()
+evaluator.evaluate_pareto()
 eval2 = (datetime.now() - start_time)
-start_time = datetime.now()
+print('Eval 2 took {} minutes'.format(eval2.total_seconds()/60))
 
 evaluator.evaluate_weight_no_tol()
 eval3 = (datetime.now() - start_time)
 start_time = datetime.now()
+print('Eval 3 took {} minutes'.format(eval3.total_seconds()/60))
 
-evaluator.evaluate_pareto()
+evaluator.evaluate_weight()
 eval4 = (datetime.now() - start_time)
+start_time = datetime.now()
 
-print('Eval 1 took {} minutes'.format(eval1.total_seconds()/60))
 print('Eval 2 took {} minutes'.format(eval2.total_seconds()/60))
 print('Eval 3 took {} minutes'.format(eval3.total_seconds()/60))
 print('Eval 4 took {} minutes'.format(eval4.total_seconds()/60))

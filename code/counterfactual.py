@@ -317,7 +317,7 @@ class CounterfactualGenerator:
             if increase_shap:
                 if changes_sorted.iloc[0]['shap_changes'] > 0.05:
                     break
-            elif changes_sorted.iloc[0]['shap_changes'] < 0.05:
+            elif changes_sorted.iloc[0]['shap_changes'] < -0.05:
                 break
 
             # Check that dropping the change still results in the right prediction.

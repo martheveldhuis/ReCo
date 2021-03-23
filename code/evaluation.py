@@ -52,9 +52,6 @@ class Evaluator:
         i = 0
         # For each data point in the test set, scale it, get its prediction, generate its SHAP values and a CF
         for index, dp in self.dataset.test_data.iterrows():
-
-            if i==5:
-                break
             dp_scaled = self.dataset.scale_data_point(dp)
             dp_pred = self.predictor.get_prediction(dp[self.dataset.feature_names])
             cf_target = (self.predictor.get_secondary_prediction(dp[self.dataset.feature_names]))
@@ -97,61 +94,6 @@ class Evaluator:
                                    'Target missed': target_missed})
         evaluation.to_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\par1.csv')
 
-    def evaluate_avg(self):
-        profiles = []
-        features_changed = []
-        perc_features_changed_bad_shap = []
-        distance_to_dp = []
-        target_missed = []
-        distance_to_td = []
-
-        i = 0
-        # For each data point in the test set, scale it, get its prediction, generate its SHAP values and a CF
-        for index, dp in self.dataset.test_data.iterrows():
-            if i==5:
-                break
-            dp_scaled = self.dataset.scale_data_point(dp)
-            dp_pred = self.predictor.get_prediction(dp[self.dataset.feature_names])
-            cf_target = (self.predictor.get_secondary_prediction(dp[self.dataset.feature_names]))
-            dp_shap = self.shap_generator.get_shap_values(dp)
-            cf_profile, cf_scaled, cf_pred, changes = self.cf_generator.generate_avg_counterfactual(dp, dp_scaled, cf_target)
-            cf_shap = self.shap_generator.get_shap_values(cf_profile)
-
-            cf = cf_profile.copy()
-            new_pred = self.predictor.get_prediction(cf[self.dataset.feature_names])
-
-            # calculate the scores
-            features_changed.append(self.count_features_changed(changes))
-            bad_shap, distance = (self.get_cf_scores(changes, dp, dp_shap, dp_pred, cf, cf_shap, cf_pred))
-            perc_features_changed_bad_shap.append(bad_shap)
-            distance_to_dp.append(distance)
-            print('original: {:.2f}'.format(dp_pred) + 'target: {}'.format(cf_target)+ ' new pred: {}'.format(new_pred.round()) + ' unrounded: {:.2f}'.format(new_pred))
-            target_missed.append(self.get_target_missed(cf_target, new_pred))
-            distance_to_td.append(self.get_distance_to_td(cf, cf_target))
-            profiles.append(index)
-
-            print('features changed: {:.2f}'.format(features_changed[i]))
-            print('perc features changed with bad shap vals: {:.2f}'.format(perc_features_changed_bad_shap[i]))
-            print('distance to dp: {:.2f}'.format(distance_to_dp[i]))
-            print('target missed: {}'.format(np.sum(target_missed[i])))
-            print('distance to td: {:.2f}'.format(distance_to_td[i]))
-
-            i+=1
-
-        print('avg features changed: {:.2f}'.format(np.mean(features_changed)))
-        print('avg perc features changed with bad shap vals: {:.2f}'.format(np.mean(perc_features_changed_bad_shap)))
-        print('avg distance to dp: {:.2f}'.format(np.mean(distance_to_dp)))
-        print('target missed: {}'.format(np.sum(target_missed)))
-        print('avg distance to td: {:.2f}'.format(np.mean(distance_to_td)))
-
-        evaluation = pd.DataFrame({'Profile': profiles,
-                                   'Features changed':features_changed,
-                                   'Perc. features changed with bad shap vals': perc_features_changed_bad_shap,
-                                   'Distance to data point':distance_to_dp,
-                                   'Distance to training data point':distance_to_td,
-                                   'Target missed': target_missed})
-        evaluation.to_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\avg2.csv')
-
     def evaluate_weight(self):
 
         profiles = []
@@ -164,8 +106,6 @@ class Evaluator:
         i = 0
         # For each data point in the test set, scale it, get its prediction, generate its SHAP values and a CF
         for index, dp in self.dataset.test_data.iterrows():
-            if i==5:
-                break
             dp_scaled = self.dataset.scale_data_point(dp)
             dp_pred = self.predictor.get_prediction(dp[self.dataset.feature_names])
             cf_target = (self.predictor.get_secondary_prediction(dp[self.dataset.feature_names]))
@@ -222,9 +162,6 @@ class Evaluator:
         i = 0
         # For each data point in the test set, scale it, get its prediction, generate its SHAP values and a CF
         for index, dp in self.dataset.test_data.iterrows():
-            if i==5:
-                break
-
             dp_scaled = self.dataset.scale_data_point(dp)
             dp_pred = self.predictor.get_prediction(dp[self.dataset.feature_names])
             cf_target = (self.predictor.get_secondary_prediction(dp[self.dataset.feature_names]))
@@ -299,8 +236,8 @@ class Evaluator:
             i+=1
 
         dist_to_dp /= 19
-        # percentage_bad_changes = (bad_shap_counter/changes.shape[0]) * 100
-        return bad_shap_counter, dist_to_dp
+        percentage_bad_changes = (bad_shap_counter/changes.shape[0]) * 100
+        return percentage_bad_changes, dist_to_dp
 
     def get_target_missed(self, cf_target, cf_pred):
         # If the target was missed or not (1 if missed; so cf_target not equal to pred)
@@ -335,6 +272,7 @@ class Evaluator:
 
         ax.hist(eval['Features changed'], bins=100)
         print('Features changed avg: {}'.format(np.mean(eval['Features changed'])))
+        plt.title('Features changed')
         plt.savefig(filename + '_fn.png', facecolor=fig.get_facecolor())
 
 
@@ -346,6 +284,7 @@ class Evaluator:
         fig.patch.set_facecolor('#E0E0E0')
 
         ax.hist(eval['Features changed']/19, bins=100)
+        plt.title('Features changed')
         plt.savefig(filename + '_f.png', facecolor=fig.get_facecolor())
 
 
@@ -357,6 +296,7 @@ class Evaluator:
         fig.patch.set_facecolor('#E0E0E0')
 
         ax.hist(eval['Target missed'], bins=100)
+        plt.title('Number of targets missed')
         plt.savefig(filename + '_t.png', facecolor=fig.get_facecolor())
 
     def plot_dist_dp(self, filename):
@@ -369,6 +309,7 @@ class Evaluator:
         print('Dist to profile: {}'.format(np.mean(eval['Distance to data point'])))
 
         ax.hist(eval['Distance to data point'], bins=100)
+        plt.title('Distance to the current data point')
         plt.savefig(filename + '_dp.png', facecolor=fig.get_facecolor())
 
     def plot_dist_td(self, filename):
@@ -381,6 +322,7 @@ class Evaluator:
         print('Dist to training point: {}'.format(np.mean(eval['Distance to training data point'])))
 
         ax.hist(eval['Distance to training data point'], bins=100)
+        plt.title('Distance to the nearest training data point')
         plt.savefig(filename + '_td.png', facecolor=fig.get_facecolor())
 
     def plot_bad_shap(self, filename):
@@ -389,9 +331,13 @@ class Evaluator:
         
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
         fig.patch.set_facecolor('#E0E0E0')
-        print('Features changed avg: {}'.format((np.mean(eval['Perc. features changed with bad shap vals']))))
 
-        ax.hist(eval['Perc. features changed with bad shap vals'], bins=100)
+        perc = eval['Perc. features changed with bad shap vals']/eval['Features changed']*100
+
+        print('perc bad shap Features changed avg: {}'.format((np.mean(perc))))
+
+        ax.hist(perc, bins=100)
+        plt.title('Perc. changed features with contradictory SHAP changes')
         plt.savefig(filename + '_bs.png', facecolor=fig.get_facecolor())
 
 

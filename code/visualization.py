@@ -39,6 +39,8 @@ class Visualization:
         self.fig, self.shap_ax, self.profile_ax, self.colorbar_ax = self.create_figure()
         self.plot_shap()
         self.plot_profile()
+        self.fig.savefig(r'results\new_' + self.data_point.name + '.png', 
+                        facecolor=self.fig.get_facecolor())
 
     def create_figure(self):
         """Creates a framework for the entire visualization"""
@@ -48,10 +50,12 @@ class Visualization:
                                 tight_layout=True, constrained_layout=False)
         plt.subplots_adjust(hspace=0.0, wspace=0.1)
         fig.suptitle('Profile ' + self.data_point.name + 
-                    ' was predicted to have {:.2f} contributors.'.format(self.prediction) +
+                    ' was predicted to have {:.2f}'.format(self.prediction) +
+                    ' ({}) contributors.'.format(round(self.prediction)) +
                     ' Below you will find the top features for the current prediction (left)' +
-                    ' and changes to reach an alternative prediction (right)', 
+                    ' and the feature values on a normalized scale (right)', 
                     fontsize=14, ha='center')
+        fig.facecolor = 'w'
 
         # Define which axis are which.
         shap_ax = axs[0,0]
@@ -84,9 +88,8 @@ class Visualization:
         ax.set_yticklabels(y_labels)
         ax.set_xticklabels([])
         ax.set_xticks([-1, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1])
-        ax.set_title('The following features values have contributed most to \n' + 
-                     'predict the NOC by pushing the output value up or down', 
-                     loc='left', fontsize=12)
+        ax.set_title('The following features values have contributed most to the current prediction', 
+                     loc='right', fontsize=12)
 
         # Create a color bar legend to serve as our x-axis tick labels
         colorbar = self.fig.colorbar(plt.cm.ScalarMappable(norm=offset, cmap=colormap), 
@@ -125,9 +128,10 @@ class Visualization:
         # Set local ax back to class ax
         self.profile_ax = ax
 
-    def plot_counterfactual(self, counterfactual, counterfactual_scaled, counterfactual_pred, changes):
+    def plot_counterfactual(self, counterfactual, counterfactual_scaled, counterfactual_pred, changes, tol=False):
         """Adjusts the right figure with a counterfactual visualization."""
 
+        cf_ax = self.profile_ax
         data_point = self.data_point
         for i, dp_bar in enumerate(self.profile_ax.containers[0].get_children()):
             
@@ -146,45 +150,66 @@ class Visualization:
                 bar_height = dp_bar.get_height()
 
                 diff = changes.loc[dp_feature_name].difference
-                # Move label over if either value is too close to 0.
-                # if cf_scaled_val < 0.04 or dp_scaled_val < 0.04:
-                #     labels[i].set_x(labels[i].get_position()[0] - 0.06) 
                 # Input value needs to be increased to match counterfactual.
                 if diff > 0:
                     # Stack on top
-                    self.profile_ax.barh(dp_feature_name, diff, left=dp_scaled_val,
+                    cf_ax.barh(dp_feature_name, diff, left=dp_scaled_val,
                             color='w', alpha=1, edgecolor='#E0E0E0')
                     # Put data point value text inside bar.
-                    self.profile_ax.texts[i].set_position((dp_bar.get_width()-0.01, 
+                    cf_ax.texts[i].set_position((dp_bar.get_width()-0.01, 
                                                            bar_y+bar_height/2.))
-                    self.profile_ax.texts[i].set_ha('right')                           
+                    cf_ax.texts[i].set_ha('right')                           
                     # Put cf data point value text outside bar.
-                    self.profile_ax.text(dp_bar.get_width()+diff+0.01, bar_y+bar_height/2.,
+                    cf_ax.text(dp_bar.get_width()+diff+0.01, bar_y+bar_height/2.,
                                          '{:.4g}'.format(cf_feature_val), ha='left', va='center')
                     # Add arrow
                     head_length = 0.01 if diff >= 0.01 else 0.75 * diff
-                    self.profile_ax.arrow(dp_scaled_val, bar_y+bar_height/2., diff, 0, width=0.1, 
+                    cf_ax.arrow(dp_scaled_val, bar_y+bar_height/2., diff, 0, width=0.1, 
                                           color='tab:olive', length_includes_head=True, 
                                           head_width=0.4, head_length=head_length)
                 # Input value needs to be decreased to match counterfactual.
                 else:
-                    self.profile_ax.barh(dp_feature_name, abs(diff), left=dp_scaled_val+diff,
+                    cf_ax.barh(dp_feature_name, abs(diff), left=dp_scaled_val+diff,
                             color=dp_bar.get_facecolor(), alpha=1, edgecolor='w')
-                    # Put data point value text outside bar.
-                    self.profile_ax.text(dp_bar.get_width()+0.01, bar_y+bar_height/2.,
-                            '{:.4g}'.format(dp_feature_val), ha='left', va='center')
                     # Put cf data point value text inside bar.
-                    self.profile_ax.text(dp_bar.get_width()+diff-0.01, bar_y+bar_height/2.,
+                    cf_ax.text(dp_bar.get_width()+diff-0.01, bar_y+bar_height/2.,
                             '{:.4g}'.format(cf_feature_val), ha='right', va='center')
                     # Add arrow
                     head_length = 0.01 if abs(diff) >= 0.01 else 0.75 * abs(diff)
-                    self.profile_ax.arrow(dp_scaled_val, bar_y+bar_height/2., diff, 0, width=0.1, 
+                    cf_ax.arrow(dp_scaled_val, bar_y+bar_height/2., diff, 0, width=0.1, 
                                           color='tab:purple', length_includes_head=True, 
                                           head_width=0.4, head_length=head_length)
 
-        self.profile_ax.set_title('This profile would have been predicted to have {}'.format(round(counterfactual_pred)) + 
-                                  ' contributors, if all following feature values were different.', 
-                                  loc='left', fontsize=12)
+        self.fig.suptitle('Profile ' + self.data_point.name + 
+                          ' was predicted to have {:.2f}'.format(self.prediction) +
+                          ' ({}) contributors.'.format(round(self.prediction)) + 
+                          ' Below you will find the top features for the current prediction (left)' +
+                          ' and changes to reach an alternative prediction (right)', 
+                          fontsize=14, ha='center')
 
-        self.fig.savefig(r'results\new_' + data_point.name + '_' + counterfactual.name + '.png', 
+
+        if(tol):
+            cf_ax.set_title('The following changes in feature values show the top changes ' +
+                            'needed to reach the prediction of {}'.format(round(counterfactual_pred)) +
+                            ' contributors.', loc='left', fontsize=12)
+
+        else:
+            cf_ax.set_title('The following changes in feature values show the most similar ' +
+                            'profile with a prediction of {}'.format(round(counterfactual_pred)) +
+                            ' contributors.', loc='left', fontsize=12)
+
+        self.profile_ax = cf_ax
+
+        if(tol):
+            self.fig.savefig(r'results\new_' + data_point.name + '_' + counterfactual.name + '_tol.png', 
                     facecolor=self.fig.get_facecolor())#, bbox_inches='tight')
+        else:
+            self.fig.savefig(r'results\new_' + data_point.name + '_' + counterfactual.name + '.png', 
+                    facecolor=self.fig.get_facecolor())#, bbox_inches='tight')
+
+
+    def plot_counterfactual_tol(self, counterfactual, counterfactual_scaled, counterfactual_pred, changes):
+        
+        self.profile_ax.clear()
+        self.plot_profile()
+        self.plot_counterfactual(counterfactual, counterfactual_scaled, counterfactual_pred, changes, True)
