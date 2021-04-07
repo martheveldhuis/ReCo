@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 
-file_path =  r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_278.txt'# Full path to 276 features file.
+file_path =  r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_278.txt'# Full path to 276 features json file.
 
 # The sample name (index) + 19 features + NOC
 features = ['index','MAC', 'TAC', 'MinNOC_CSF1PO', 'MinNOC_D16S539', 

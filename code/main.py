@@ -23,6 +23,7 @@ from evaluation import Evaluator
 # file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_19.txt'
 # file_path_samples = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\features5000\Features5000_19.txt'
 file_path_merged = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features_merged_19.txt'
+file_path_new = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features_new_19.txt'
 test_fraction = 0.2
 # data_reader = DataReader19Features(file_path, test_fraction)
 # data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
@@ -72,15 +73,16 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # Pick the data point you want to have explained.
+# test_points = data_reader_merged.read_data(file_path_new)['data']
+# data_point = test_points.iloc[1] # 1_2B.Trace#01
+# data_point = dataset_merged.train_data.loc['4D3.3'] # recommended by Corina
 # data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
 # data_point = dataset_merged.train_data.loc['2C3.3']
 # data_point = dataset_merged.test_data.loc['5.79']
 # data_point = dataset_merged.test_data.iloc[4] # 0 is profile 5.56, 20 is trace x14.
 # data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
-
-# print(data_point)
-# dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
-# print(dp_pred)
+data_point = dataset_merged.test_data.loc['2.29']
+dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
 
 
 # ################################ ANCHORS ################################
@@ -98,12 +100,12 @@ rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 
 # Compute SHAP values
 shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
-# dp_shap = shap_generator.get_shap_values(data_point)
+dp_shap = shap_generator.get_shap_values(data_point)
 
-# # Create the visualization
-# data_point_scaled = dataset_merged.scale_data_point(data_point)
-# data_point_X = data_point[dataset_merged.feature_names]
-# visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
+ # Create the visualization
+data_point_scaled = dataset_merged.scale_data_point(data_point)
+data_point_X = data_point[dataset_merged.feature_names]
+visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
 
 # ################################ COUNTERFACTUALS ################################
 
@@ -112,78 +114,55 @@ shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
 # end_time = datetime.now()
 # print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
 
-# Define counterfactual generators (1 generator must be fitted to 1 predictor).
+# Define counterfactual generators (1 generator must be fitted to 1
 CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 # Get the user's input for which NOC to generate the counterfactual.
-# def get_user_cf_target(dp_pred):
-#     while True:
-#         try:
-#             cf_target = float(int(input('Enter the NOC explanation you want to see for this profile (1-5): ')))
-#         except ValueError:
-#             print('You have entered an invalid NOC. Try a whole number between 1 and 5.')
-#         else:
-#             if cf_target == dp_pred.round():
-#                 print('You have entered the same NOC as the current prediction. Try another NOC.')
-#                 continue
-#             return cf_target
-
-# def wait_user_enter():
-#     while True:
-#         try:
-#             cf_target = input('Hit any key to continue.')
-#         except ValueError:
-#             print('Something went wrong')
-#         else:
-#             return
-
-# cf_target = get_user_cf_target(dp_pred)
-# cf, cf_scaled, cf_pred, changes = CF_generator.generate_pareto_counterfactual(data_point, data_point_scaled, cf_target)
-
-# visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
-# #wait_user_enter()
+def get_user_cf_target(dp_pred):
+    while True:
+        try:
+            cf_target = float(int(input('Enter the NOC explanation you want to see for this profile (1-5): ')))
+        except ValueError:
+            print('You have entered an invalid NOC. Try a whole number between 1 and 5.')
+        else:
+            if cf_target == dp_pred.round():
+                print('You have entered the same NOC as the current prediction. Try another NOC.')
+                continue
+            return cf_target
 
 
-# # Add tolerance before plotting
-# cf_shap = shap_generator.get_shap_values(cf)
-# changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
 
-# visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
-#wait_user_enter()
+cf_target = get_user_cf_target(dp_pred)
+
+cf, cf_scaled, cf_pred, changes = CF_generator.generate_weighted_counterfactual(data_point, data_point_scaled, cf_target)
+visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
+
+
+# Add tolerance before plotting
+cf_shap = shap_generator.get_shap_values(cf)
+changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
+visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
 
 
 ################################ EVALUATION ################################
 
-evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
 
-# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\avg2']
+
+# evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
+
+# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight_f']
 # for file in filesnames:
-# #     evaluator.plot_features(file)
-# #     evaluator.plot_target_missed(file)
-# #     evaluator.plot_dist_dp(file)
-# #     evaluator.plot_dist_td(file)
+#     evaluator.plot_features(file)
+#     evaluator.plot_dist_dp(file)
+#     evaluator.plot_dist_td(file)
 #     evaluator.plot_bad_shap(file)
 #     evaluator.plot_num_features(file)
+#     evaluator.print_target_missed(file)
+#     evaluator.print_realism_score(file)
 
 
 
 
-start_time = datetime.now()
-evaluator.evaluate_pareto()
-eval2 = (datetime.now() - start_time)
-print('Eval 2 took {} minutes'.format(eval2.total_seconds()/60))
 
-evaluator.evaluate_weight_no_tol()
-eval3 = (datetime.now() - start_time)
-start_time = datetime.now()
-print('Eval 3 took {} minutes'.format(eval3.total_seconds()/60))
-
-evaluator.evaluate_weight()
-eval4 = (datetime.now() - start_time)
-start_time = datetime.now()
-
-print('Eval 2 took {} minutes'.format(eval2.total_seconds()/60))
-print('Eval 3 took {} minutes'.format(eval3.total_seconds()/60))
-print('Eval 4 took {} minutes'.format(eval4.total_seconds()/60))
 
 

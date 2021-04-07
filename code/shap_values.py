@@ -47,7 +47,9 @@ class ShapGenerator:
 
     def get_shap_values(self, data_point):
         """Calculate the SHAP values for the current data point"""
-
+        # shap_values = self.explainer.shap_values(data_point[self.dataset.feature_names])
+        # f=shap.force_plot(self.explainer.expected_value, shap_values, data_point[self.dataset.feature_names], show=False)
+        # shap.save_html("index.html", f)
         return self.explainer.shap_values(data_point[self.dataset.feature_names])
 
     def get_shap_explanation(self, data_point):

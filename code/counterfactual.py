@@ -50,16 +50,12 @@ class CounterfactualGenerator:
         """
         feature_names = self.dataset.feature_names
         data_point_X = data_point[feature_names]
-
-        # Get the data point's top and second-best, counterfactual (cf), prediction.
-        data_point_pred = self.predictor.get_prediction(data_point_X)
       
         # Find profiles classified as cf prediction.
         candidates_X = self.predictor.get_data_corr_predicted_as(cf_pred)[feature_names]
         candidates = candidates_X.index
-        candidate_predictions = self.predictor.get_prediction(candidates_X)
 
-        # Create 2D array to store scores.
+        # Create arrays to store scores.
         cand_distance = []
         cand_features = []
         profiles = []
@@ -68,7 +64,6 @@ class CounterfactualGenerator:
         i=0
         for candidate in candidates:
             candidate_X = candidates_X.loc[candidate]
-            candidate_pred = candidate_predictions[i]
 
             distance_score, features_changed = self.calculate_distance_score(candidate_X, data_point_X)
             
@@ -78,16 +73,15 @@ class CounterfactualGenerator:
 
             i+=1
 
-        # Get the non-dominated profiles and pick the non-dom features
+        # Put scores together with the profile names.
         candidate_scores = np.array([cand_distance, cand_features, profiles]).T
+
+        # Get the non-dominated profiles and pick the lowest nr. of changed features.
         non_dom = self.get_non_dominated(candidate_scores)
         sorted_scores = candidate_scores[candidate_scores[:, 1].argsort()]
-
         non_dom_indices = np.isin(sorted_scores[:, 2], non_dom)
         non_dom_sorted = sorted_scores[non_dom_indices]
-        print(non_dom_sorted[0])
-        
-        cf = non_dom_sorted[0][2]
+        cf = non_dom_sorted[0][2] # take the top candidate's name
 
         # Get the CF profile and calculate the changes.
         original_cf = self.dataset.train_data.loc[cf].copy()
@@ -105,128 +99,89 @@ class CounterfactualGenerator:
         """
         feature_names = self.dataset.feature_names
         data_point_X = data_point[feature_names]
-
-        # Get the data point's top and second-best, counterfactual (cf), prediction.
-        data_point_pred = self.predictor.get_prediction(data_point_X)
       
         # Find profiles classified as cf prediction.
         candidates_X = self.predictor.get_data_corr_predicted_as(cf_pred)[feature_names]
         candidates = candidates_X.index
-        candidate_predictions = self.predictor.get_prediction(candidates_X)
 
-        # Create dataframe to store scores.
-        columns = ['distance_score', 'features_changed']
-        candidate_scores = pd.DataFrame(columns = columns)
+        # Create arrays to store scores.
+        cand_distance = []
+        cand_features = []
+        cand_sum = []
+        profiles = []
 
         # Calculate all scores for each candidate data point.
         i=0
         for candidate in candidates:
             candidate_X = candidates_X.loc[candidate]
-            candidate_pred = candidate_predictions[i]
 
-            target_score = self.calculate_target_score(cf_pred, candidate_pred, data_point_pred)
             distance_score, features_changed = self.calculate_distance_score(candidate_X, data_point_X)
             
-            # Put together into a series and append to dataframe as as row.
-            new_row = pd.Series({'distance_score':distance_score, 
-                                 'features_changed':features_changed},
-                                  name=candidate)
-            candidate_scores = candidate_scores.append(new_row)
+            cand_features.append(features_changed)
+            cand_distance.append(distance_score)
+            profiles.append(candidate)
 
             i+=1
 
-        # Sum the scores and sort by ascending order.
-        candidate_scores['sum'] = candidate_scores['features_changed'] + 6 * candidate_scores['distance_score']
-        candidate_scores.sort_values(by='sum', inplace=True)
-        cf = candidate_scores.iloc[0]
+        # Create a weighted sum.
+        weighted_distance = 5 * (np.array(cand_distance))
+        weighted_features = 1 * (np.array(cand_features))
+        cand_sum = np.add(weighted_distance, weighted_features)
+        
+        # Put scores together with the profile names.
+        candidate_scores = np.array([cand_distance, cand_features, cand_sum, profiles]).T
+        sorted_scores = candidate_scores[candidate_scores[:, 2].argsort()] # sort based on sum
+        cf = sorted_scores[0][3] # take the top candidate's name
 
         # Get the CF profile and calculate the changes.
-        original_cf = self.dataset.train_data.loc[cf.name].copy()
+        original_cf = self.dataset.train_data.loc[cf].copy()
         scaled_cf = self.dataset.scale_data_point(original_cf)
         changes = self.calculate_scaled_changes(scaled_cf, data_point_scaled)
 
         return original_cf, scaled_cf, cf_pred, changes 
 
-    def generate_avg_counterfactual(self, data_point, data_point_scaled, cf_pred):
-        """Generate a counterfactual by weighing each feature value by distance.
+    def generate_whatif_counterfactual(self, data_point, data_point_scaled, cf_pred):
+        """Generate a counterfactual by calculating the distance score only.
 
            :param data_point: a pandas Series object for the instance we want to explain.
            :param data_point_scaled: a pandas Series object for the scaled instance we want to explain.
         """
         feature_names = self.dataset.feature_names
         data_point_X = data_point[feature_names]
-
-        # Get the data point's top and second-best, counterfactual (cf), prediction.
-        data_point_pred = self.predictor.get_prediction(data_point_X)
       
         # Find profiles classified as cf prediction.
-        training_data_X = self.predictor.get_data_corr_predicted_as(cf_pred)[feature_names]
-        training_data = training_data_X.index
-        training_data_predictions = self.predictor.get_prediction(training_data_X)
+        candidates_X = self.predictor.get_data_corr_predicted_as(cf_pred)[feature_names]
+        candidates = candidates_X.index
 
-        # Create dataframe to store scores.
-        columns = ['distance_score', 'features_changed']
-        training_data_scores = pd.DataFrame(columns = columns)
+        # Create arrays to store scores.
+        cand_distance = []
+        profiles = []
 
         # Calculate all scores for each candidate data point.
         i=0
-        weighted_cf = pd.DataFrame(1, index=[0], columns=feature_names)
-        total_weight = 0
+        for candidate in candidates:
+            candidate_X = candidates_X.loc[candidate]
 
-        for training_point in training_data:
-            training_point_X = training_data_X.loc[training_point]
-            training_point_pred = training_data_predictions[i]
-
-            distance_score, features_changed = self.calculate_distance_score(training_point_X, data_point_X)
-
-            # Put together into a series and append to dataframe as as row.
-            new_row = pd.Series({'distance_score': distance_score, 
-                                 'features_changed': features_changed},
-                                  name=training_point)
-            training_data_scores = training_data_scores.append(new_row)
-
-            weight = 10 * (1 - distance_score) + (1 - features_changed)
-            total_weight += weight
-            weighted_addition = training_point_X.multiply(weight)
-            weighted_cf += weighted_addition
-
-            i+=1
-       
-        weighted_cf /= total_weight
-        cf = weighted_cf.iloc[0]
-        cf.name = 'avg'
-        cf.columns = feature_names
-        cf_X = cf[feature_names]
-
-        # Create dataframe to store scores.
-        candidate_scores = pd.DataFrame(columns = columns)
-
-        i = 0
-        for candidate in training_data:
-            candidate_X = training_data_X.loc[candidate]
-            candidate_pred = training_data_predictions[i]
-
-            distance_score, features_changed = self.calculate_distance_score(candidate_X, cf_X)
+            distance_score, features_changed = self.calculate_distance_score(candidate_X, data_point_X)
             
-            # Put together into a series and append to dataframe as as row.
-            new_row = pd.Series({'distance_score': distance_score, 
-                                 'features_changed': features_changed},
-                                  name=candidate)
-            candidate_scores = candidate_scores.append(new_row)
+            cand_distance.append(distance_score)
+            profiles.append(candidate)
 
             i+=1
-
-        # Sum the scores and sort by ascending order.
-        candidate_scores['sum'] = candidate_scores['features_changed'] + 6 * candidate_scores['distance_score']
-        candidate_scores.sort_values(by='sum', inplace=True)
-        cf = candidate_scores.iloc[0]
+        
+        # Put the score together with the profile names.
+        candidate_scores = np.array([cand_distance, profiles]).T
+        sorted_scores = candidate_scores[candidate_scores[:, 0].argsort()] # sort based on distance
+        cf = sorted_scores[0][1] # take the top candidate's name
 
         # Get the CF profile and calculate the changes.
-        original_cf = self.dataset.train_data.loc[cf.name]
+        original_cf = self.dataset.train_data.loc[cf].copy()
         scaled_cf = self.dataset.scale_data_point(original_cf)
         changes = self.calculate_scaled_changes(scaled_cf, data_point_scaled)
 
-        return original_cf, scaled_cf, cf_pred, changes
+        return original_cf, scaled_cf, cf_pred, changes 
+
+    
 
     def calculate_target_score(self, cf_pred, candidate_pred, data_point_pred):
         """Score between counterfactual (cf) candidate pred score and the data point pred.
@@ -252,20 +207,20 @@ class CounterfactualGenerator:
         """
         features_min_max = self.dataset.get_features_min_max()
         total_num_features = len(features_min_max.columns)
-        dist = 0
-        features_changed = 0
+        total_dist = 0
+        total_features_changed = 0
         # Get feature-wise distances, scaled by the max value of each feature. Keep track of the
         # number of features that are changed.        
         for feature in features_min_max.columns:
             dist = abs(candidate[feature] - data_point[feature])
-            max_scaled_dist = dist / (features_min_max[feature].loc['max'])
-            if max_scaled_dist > 0.0:
-                dist += max_scaled_dist
-                features_changed += 1
+            if dist > 0.0:
+                max_scaled_dist = dist / (features_min_max[feature].loc['max'])
+                total_dist += max_scaled_dist
+                total_features_changed += 1
         # Divide by the total num of features to get values 0-1
-        dist /= total_num_features
-        features_changed /= total_num_features
-        return dist, features_changed
+        total_dist /= total_num_features
+        total_features_changed /= total_num_features
+        return total_dist, total_features_changed
 
     def calculate_scaled_changes(self, counterfactual_scaled, data_point_scaled):
         """Calculate the scaled changes between data point and counterfactual.
@@ -332,20 +287,3 @@ class CounterfactualGenerator:
                 features_to_drop.append(feature)
 
         return changes.drop(features_to_drop, inplace=False)
-
-
-
-        # i = 0
-        # for feature_name in self.dataset.feature_names:
-        #     if feature_name in changes.index:
-
-        #         dp_shap_feature = dp_shap[i]
-        #         cf_shap_feature = cf_shap[i]
-        #         shap_change = cf_shap_feature - dp_shap_feature
-
-        #         # Drop changes where the change in SHAP values does not correspond with the change
-        #         # in prediction (or is zero / less than 0.05).
-        #         if ((cf_target > dp_pred and shap_change <= min_change) or 
-        #             (cf_target < dp_pred and shap_change >= -min_change)): 
-        #             changes.drop(feature_name, inplace=True)
-        #     i+=1

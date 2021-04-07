@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -63,6 +64,7 @@ class Dataset:
 
         self.train_data, self.test_data = self.split_data(self.data)
         self.scaled_train_data = self.scale_data(self.train_data)
+        self.train_correlations = self.calculate_feature_corr()
         
 
     def split_data(self, data):
@@ -89,7 +91,6 @@ class Dataset:
         scaled_train_data_df = pd.DataFrame(data=scaled_train_data, columns=self.feature_names)
         scaled_train_data_df.index = train_data.index
         scaled_train_data_df[self.outcome_name] = train_data[self.outcome_name]
-        print(train_data['D1S1656 perc. known alleles'].max())
 
         return scaled_train_data_df
 
@@ -105,6 +106,7 @@ class Dataset:
         #data_point_scaled.values = data_point_scaled.values.apply(> 1.0 else 1.0 for y in x])
 
         return data_point_scaled
+
 
     def get_features_min_max(self):
         """
@@ -147,6 +149,18 @@ class Dataset:
             mads[feature_name] = mad
         
         return mads
+
+    def calculate_feature_corr(self):
+        """Calculate the pairwise feature correlations using the Kendall method."""
+        
+        return self.train_data.astype(float).corr(method='kendall')
+
+    def get_top_corr_features(self, feature_name):
+        """Get the top correlated features with a certain feature"""
+
+        correlations = abs(self.train_correlations[feature_name][self.feature_names]) # abs!
+        correlations.sort_values(ascending=False, inplace=True)
+        return correlations.index[1:] # exlude itsself
 
     def plot_feature_correlations(self):
         """Plot the pairwise feature correlations."""

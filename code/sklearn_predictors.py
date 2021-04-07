@@ -208,6 +208,28 @@ class RFR19(Predictor):
         else:
             return self.model.predict(x)
 
+    def get_prediction_proba(self, x):
+
+        pred_1 = self.get_prediction(x)
+        pred_2 = self.get_secondary_prediction(x)
+
+        proba_2d_array = np.zeros((1, 5))
+
+        for i in range(len(pred_1)):
+            pred_1_rounded = int(pred_1[i].round())
+            pred_2 = int(pred_2[i])
+            proba_1 = 1 - (abs(pred_1[i] - pred_1_rounded))
+            proba_2 = 1 - proba_1
+            proba_array = np.zeros(5)
+            proba_array[pred_1_rounded-1] = proba_1
+            proba_array[pred_2-1] = proba_2
+            if i == 0:
+                proba_2d_array[0] = proba_array
+            else:
+                proba_2d_array = proba_2d_array.append(proba_array)
+
+        return proba_2d_array
+
     def get_secondary_prediction(self, x):
         """Get the second most likely prediction."""
 
