@@ -40,7 +40,7 @@ class Visualization:
         self.plot_shap()
         self.plot_profile()
         self.fig.savefig(r'results\new_' + self.data_point.name + '.png', 
-                        facecolor=self.fig.get_facecolor())
+                        facecolor=self.fig.get_facecolor(), bbox_inches='tight')
 
     def create_figure(self):
         """Creates a framework for the entire visualization"""
@@ -139,11 +139,9 @@ class Visualization:
             dp_feature_name = data_point.index[i]
             if dp_feature_name in changes.index:
 
-                # Grab our 4 values
-                dp_feature_val = data_point[i]
+                # Grab x-coord of where to plot (dp scaled), and what number to display (cf val).
                 dp_scaled_val = self.data_point_scaled[i]
                 cf_feature_val = counterfactual[i]
-                cf_scaled_val = counterfactual_scaled[i]
                 
                 # Grab the original bar's y coordinate and height.
                 bar_y = dp_bar.get_y()
@@ -202,10 +200,10 @@ class Visualization:
 
         if(tol):
             self.fig.savefig(r'results\new_' + data_point.name + '_' + counterfactual.name + '_tol.png', 
-                    facecolor=self.fig.get_facecolor())#, bbox_inches='tight')
+                    facecolor=self.fig.get_facecolor(), bbox_inches='tight')
         else:
             self.fig.savefig(r'results\new_' + data_point.name + '_' + counterfactual.name + '.png', 
-                    facecolor=self.fig.get_facecolor())#, bbox_inches='tight')
+                    facecolor=self.fig.get_facecolor(), bbox_inches='tight')
 
 
     def plot_counterfactual_tol(self, counterfactual, counterfactual_scaled, counterfactual_pred, changes):

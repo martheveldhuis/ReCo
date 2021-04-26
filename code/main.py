@@ -71,19 +71,16 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 
 # Define predictors to use, provide it with a dataset to fit on.
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
-
+# data_point = dataset_merged.test_data.loc['Run 1_Trace 1613676513158'] < diff by 2 methods
 # Pick the data point you want to have explained.
 # test_points = data_reader_merged.read_data(file_path_new)['data']
-# data_point = test_points.iloc[1] # 1_2B.Trace#01
-# data_point = dataset_merged.train_data.loc['4D3.3'] # recommended by Corina
+# data_point = test_points.iloc[0] # 1_2B.Trace#01
+# data_point = test_points.iloc[1] # 1_6B.Trace#01
 # data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
-# data_point = dataset_merged.train_data.loc['2C3.3']
-# data_point = dataset_merged.test_data.loc['5.79']
-# data_point = dataset_merged.test_data.iloc[4] # 0 is profile 5.56, 20 is trace x14.
-# data_point = dataset_merged.train_data.loc['Run 1_Trace 1613482097080']
-data_point = dataset_merged.test_data.loc['2.29']
-dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
-
+# data_point = dataset_merged.train_data.loc['2.37']
+# data_point = dataset_merged.test_data.loc['2.29']
+# print(data_point)
+# dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
 
 # ################################ ANCHORS ################################
 
@@ -100,12 +97,12 @@ dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_n
 
 # Compute SHAP values
 shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
-dp_shap = shap_generator.get_shap_values(data_point)
+# dp_shap = shap_generator.get_shap_values(data_point)
 
- # Create the visualization
-data_point_scaled = dataset_merged.scale_data_point(data_point)
-data_point_X = data_point[dataset_merged.feature_names]
-visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
+# # Create the visualization
+# data_point_scaled = dataset_merged.scale_data_point(data_point)
+# data_point_X = data_point[dataset_merged.feature_names]
+# visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
 
 # ################################ COUNTERFACTUALS ################################
 
@@ -118,51 +115,42 @@ visualization = Visualization(data_point_X, data_point_scaled, dp_pred, dp_shap)
 CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 # Get the user's input for which NOC to generate the counterfactual.
-def get_user_cf_target(dp_pred):
-    while True:
-        try:
-            cf_target = float(int(input('Enter the NOC explanation you want to see for this profile (1-5): ')))
-        except ValueError:
-            print('You have entered an invalid NOC. Try a whole number between 1 and 5.')
-        else:
-            if cf_target == dp_pred.round():
-                print('You have entered the same NOC as the current prediction. Try another NOC.')
-                continue
-            return cf_target
+# def get_user_cf_target(dp_pred):
+#     while True:
+#         try:
+#             cf_target = float(int(input('Enter the NOC explanation you want to see for this profile (1-5): ')))
+#         except ValueError:
+#             print('You have entered an invalid NOC. Try a whole number between 1 and 5.')
+#         else:
+#             if cf_target == dp_pred.round():
+#                 print('You have entered the same NOC as the current prediction. Try another NOC.')
+#                 continue
+#             return cf_target
 
 
 
-cf_target = get_user_cf_target(dp_pred)
+# cf_target = get_user_cf_target(dp_pred)
 
-cf, cf_scaled, cf_pred, changes = CF_generator.generate_weighted_counterfactual(data_point, data_point_scaled, cf_target)
-visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
+# cf, cf_scaled, cf_pred, changes = CF_generator.generate_weighted_counterfactual(data_point, data_point_scaled, cf_target)
+# visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
 
 
 # Add tolerance before plotting
-cf_shap = shap_generator.get_shap_values(cf)
-changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
-visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
+# cf_shap = shap_generator.get_shap_values(cf)
+# changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
+# visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
 
 
 ################################ EVALUATION ################################
 
 
 
-# evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
-
-# filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight_f']
-# for file in filesnames:
-#     evaluator.plot_features(file)
-#     evaluator.plot_dist_dp(file)
-#     evaluator.plot_dist_td(file)
-#     evaluator.plot_bad_shap(file)
-#     evaluator.plot_num_features(file)
-#     evaluator.print_target_missed(file)
-#     evaluator.print_realism_score(file)
+evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
 
 
+# start_time = datetime.now()
+# evaluator.evaluate('dice_genetic')
+# end_time = datetime.now()
+# print('took {}'.format((end_time-start_time).total_seconds()/60) + ' to compute')
 
-
-
-
-
+evaluator.plot_boxplot()

@@ -81,7 +81,10 @@ class CounterfactualGenerator:
         sorted_scores = candidate_scores[candidate_scores[:, 1].argsort()]
         non_dom_indices = np.isin(sorted_scores[:, 2], non_dom)
         non_dom_sorted = sorted_scores[non_dom_indices]
-        cf = non_dom_sorted[0][2] # take the top candidate's name
+        # Get the median of the non-dominated set.
+        nr_of_cf_found = len(non_dom_sorted)
+        cf = non_dom_sorted[int((nr_of_cf_found-1)/2)][2]
+        #cf = non_dom_sorted[0][2] # take the top candidate's name
 
         # Get the CF profile and calculate the changes.
         original_cf = self.dataset.train_data.loc[cf].copy()
@@ -178,22 +181,8 @@ class CounterfactualGenerator:
         original_cf = self.dataset.train_data.loc[cf].copy()
         scaled_cf = self.dataset.scale_data_point(original_cf)
         changes = self.calculate_scaled_changes(scaled_cf, data_point_scaled)
-
+        
         return original_cf, scaled_cf, cf_pred, changes 
-
-    
-
-    def calculate_target_score(self, cf_pred, candidate_pred, data_point_pred):
-        """Score between counterfactual (cf) candidate pred score and the data point pred.
-           e.g. when we have a data point with prediction 3.1 and looking for a cf with target 4,
-           we will favor predictions such as 3.6 over ones like 4.3.
-           This will most likely show more similar profiles rather than setting the target as 4.
-        :param cf_pred: int representing the target    
-        :param candidate_pred: float representing the counterfactual (cf) candidate's prediction.
-        :param data_point_pred: float representing the data point's prediction.
-        """            
-
-        return abs(data_point_pred - candidate_pred)
 
     def calculate_distance_score(self, candidate, data_point):
         """Distance score between the original data point and the counterfactual (cf) candidate.
@@ -205,16 +194,18 @@ class CounterfactualGenerator:
 
         :returns two floats
         """
-        features_min_max = self.dataset.get_features_min_max()
-        total_num_features = len(features_min_max.columns)
+        feat_min_max = self.dataset.get_features_min_max()
+        feat_mad = self.dataset.get_features_mad()
+        total_num_features = len(feat_min_max.columns)
         total_dist = 0
         total_features_changed = 0
-        # Get feature-wise distances, scaled by the max value of each feature. Keep track of the
-        # number of features that are changed.        
-        for feature in features_min_max.columns:
+        # Get feature-wise distances, scaled by the min-max range of each feature. Keep track of 
+        # the number of features that are changed.        
+        for feature in feat_min_max.columns:
             dist = abs(candidate[feature] - data_point[feature])
+            feature_range = feat_min_max[feature].loc['max'] - feat_min_max[feature].loc['min']
             if dist > 0.0:
-                max_scaled_dist = dist / (features_min_max[feature].loc['max'])
+                max_scaled_dist = dist / feature_range
                 total_dist += max_scaled_dist
                 total_features_changed += 1
         # Divide by the total num of features to get values 0-1
@@ -246,11 +237,11 @@ class CounterfactualGenerator:
     def add_shap_tolerance(self, dp, dp_shap, dp_pred, cf, cf_shap, cf_target, changes):
 
         # Get the change in SHAP values going from the data point to the cf (pos is increase).
-        shap_dp_to_cf = np.subtract(cf_shap, dp_shap)
+        shap_diff = np.subtract(cf_shap, dp_shap)
 
         # Grab indices of the changed features to select the relevant shap changes
         changed_feature_indices = np.where(np.isin(self.dataset.feature_names, changes.index))
-        changed_shap_dp_to_cf = np.take(shap_dp_to_cf, changed_feature_indices[0])
+        changed_shap_dp_to_cf = np.take(shap_diff, changed_feature_indices[0])
 
         # Add the SHAP changes to a new changes df.
         changes_sorted = changes.copy()
