@@ -274,31 +274,31 @@ class Evaluator:
         eval_dice = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice.csv', index_col=0)
         eval_dice_g = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic.csv', index_col=0)
         eval_whatif = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif.csv', index_col=0)
-        eval_weight = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight.csv', index_col=0)
-        eval_weight_f = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight_f.csv', index_col=0)
+        eval_reco_no_f = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f.csv', index_col=0)
+        eval_reco = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco.csv', index_col=0)
         
-        fig, axs = plt.subplots(2, 2)
+        fig, axss = plt.subplots(2, 2, figsize=(11,7))
 
-        axs[0][0].boxplot([eval_dice['Features changed'], eval_dice_g['Features changed'],
-                            eval_whatif['Features changed'], 
-                    eval_weight['Features changed'], eval_weight_f['Features changed']])
-        axs[0][0].set_xticklabels(['DiCE random', 'DiCE genetic', 'WhatIf', 'ReCo without filter', 'ReCo'])
-        axs[0][0].set_title('Number of features changed', loc='left')
+        box_colors = ['#1170aa', '#5fa2ce', '#a3acb9', '#ffbc79'] # '#c85200',
+        titles = ['Number of features changed', 'Distance to the profile to be explained', 
+                  'Distance to the nearest training data point', 'Targets missed', 'Realism score']
 
-        axs[0][1].boxplot([eval_dice['Distance to data point'], eval_dice_g['Distance to data point'], eval_whatif['Distance to data point'], 
-                    eval_weight['Distance to data point'], eval_weight_f['Distance to data point']])
-        axs[0][1].set_xticklabels(['DiCE random', 'DiCE genetic', 'WhatIf', 'ReCo without filter', 'ReCo'])
-        axs[0][1].set_title('Distance to the profile to be explained', loc='left')
+        i = 1
+        for axs in axss:
+            for ax in axs:
+                if i == 4:
+                    i = 5
+                bplot = ax.boxplot([eval_dice.iloc[:,i], eval_dice_g.iloc[:,i], eval_whatif.iloc[:,i], eval_reco.iloc[:,i]], patch_artist=True,
+                                    medianprops=dict(color='k', linewidth=2))
+                ax.set_title(titles[i-1], pad=15)
+                ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+                ax.set_xticklabels(['DiCE random', 'DiCE genetic', 'WhatIf', 'ReCo'])
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
 
-        axs[1][0].boxplot([eval_dice['Distance to training data point'], eval_dice_g['Distance to training data point'], eval_whatif['Distance to training data point'], 
-                    eval_weight['Distance to training data point'], eval_weight_f['Distance to training data point']])
-        axs[1][0].set_xticklabels(['DiCE random', 'DiCE genetic', 'WhatIf', 'ReCo without filter', 'ReCo'])
-        axs[1][0].set_title('Distance to the nearest training data point', loc='left')
+                for patch, color in zip(bplot['boxes'], box_colors):
+                    patch.set_facecolor(color)
+                i += 1
 
-        axs[1][1].boxplot([eval_dice['Realism score'], eval_dice_g['Realism score'], eval_whatif['Realism score'], 
-                    eval_weight['Realism score'], eval_weight_f['Realism score']])
-        axs[1][1].set_xticklabels(['DiCE random', 'DiCE genetic', 'WhatIf', 'ReCo without filter', 'ReCo'])
-        axs[1][1].set_title('Realism score', loc='left')
-
-        fig.tight_layout(pad=1.0)
-        plt.show()
+        fig.tight_layout(pad=2)
+        fig.savefig(r'evaluation\boxplot_final_eval.png')
