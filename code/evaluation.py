@@ -255,13 +255,13 @@ class Evaluator:
 
     def print_scores(self):
 
-        filesnames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice',
-                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic',
-                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif',
-                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight',
-                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_weight_f']
+        filenames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco']
         
-        for file in filesnames:
+        for file in filenames:
             eval = pd.read_csv(file + '.csv', index_col=0)
             print('Features changed avg: {}'.format(np.mean(eval['Features changed'])))   
             print('Dist to profile: {}'.format(np.mean(eval['Distance to data point'])))
@@ -271,11 +271,17 @@ class Evaluator:
 
     def plot_boxplot(self): 
         
-        eval_dice = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice.csv', index_col=0)
-        eval_dice_g = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic.csv', index_col=0)
-        eval_whatif = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif.csv', index_col=0)
-        eval_reco_no_f = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f.csv', index_col=0)
-        eval_reco = pd.read_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco.csv', index_col=0)
+        filenames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco']
+
+        eval_dice = pd.read_csv(filenames[0], index_col=0)
+        eval_dice_g = pd.read_csv(filenames[1], index_col=0)
+        eval_whatif = pd.read_csv(filenames[2], index_col=0)
+        # eval_reco_no_f = pd.read_csv(filenames[3], index_col=0)
+        eval_reco = pd.read_csv(filenames[4], index_col=0)
         
         fig, axss = plt.subplots(2, 2, figsize=(11,7))
 
@@ -286,9 +292,11 @@ class Evaluator:
         i = 1
         for axs in axss:
             for ax in axs:
-                if i == 4:
+                if i == 4: # Skipping targets missed column in files
                     i = 5
-                bplot = ax.boxplot([eval_dice.iloc[:,i], eval_dice_g.iloc[:,i], eval_whatif.iloc[:,i], eval_reco.iloc[:,i]], patch_artist=True,
+                
+                bplot = ax.boxplot([eval_dice.iloc[:,i], eval_dice_g.iloc[:,i], 
+                                    eval_whatif.iloc[:,i], eval_reco.iloc[:,i]], patch_artist=True,
                                     medianprops=dict(color='k', linewidth=2))
                 ax.set_title(titles[i-1], pad=15)
                 ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
