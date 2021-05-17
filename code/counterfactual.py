@@ -76,15 +76,14 @@ class CounterfactualGenerator:
         # Put scores together with the profile names.
         candidate_scores = np.array([cand_distance, cand_features, profiles]).T
 
-        # Get the non-dominated profiles and pick the lowest nr. of changed features.
+        # Get the non-dominated profiles and pick the median.
         non_dom = self.get_non_dominated(candidate_scores)
         sorted_scores = candidate_scores[candidate_scores[:, 1].argsort()]
         non_dom_indices = np.isin(sorted_scores[:, 2], non_dom)
         non_dom_sorted = sorted_scores[non_dom_indices]
         # Get the median of the non-dominated set.
         nr_of_cf_found = len(non_dom_sorted)
-        cf = non_dom_sorted[int((nr_of_cf_found-1)/2)][2]
-        #cf = non_dom_sorted[0][2] # take the top candidate's name
+        cf = non_dom_sorted[int((nr_of_cf_found-1)/2)][2] # take the top candidate's name
 
         # Get the CF profile and calculate the changes.
         original_cf = self.dataset.train_data.loc[cf].copy()

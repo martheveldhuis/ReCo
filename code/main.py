@@ -20,38 +20,40 @@ from evaluation import Evaluator
 ################################ DATA READING ################################
 
 # Define which file to read, test fraction, and the custom data reader.
-# file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_19.txt'
-# file_path_samples = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\features5000\Features5000_19.txt'
+file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_19.txt'
+file_path_samples = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\features5000\Features5000_19.txt'
 file_path_merged = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features_merged_19.txt'
-file_path_new = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features_new_19.txt'
 test_fraction = 0.2
-# data_reader = DataReader19Features(file_path, test_fraction)
-# data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
+data_reader = DataReader19Features(file_path, test_fraction)
+data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
 data_reader_merged = DataReader19Features(file_path_merged, test_fraction)
 
 # Get stats of 590 dataset
-# dataset = Dataset(data_reader.read_data())
+dataset = Dataset(data_reader.read_data())
 # print(dataset.data.shape)
 # print(dataset.get_features_min_max()
 # print(dataset.get_features_mad())
-# dataset.plot_feature_violin()
 # dataset.plot_feature_correlations()
+# dataset.plot_feature_violin()
 # dataset.plot_feature_boxplots()
 # dataset.plot_feature_histograms()
 # dataset.plot_lda_3d()
 # dataset.plot_lda_2d()
 
 # Get stats of 5000 sampled dataset
-# dataset_samples = Dataset(data_reader_samples.read_data())
+dataset_samples = Dataset(data_reader_samples.read_data())
 # print(dataset_samples.data.shape)
 # print(dataset_samples.get_features_min_max())
 # print(dataset_samples.get_features_mad())
-# dataset_samples.plot_feature_violin()
 # dataset_samples.plot_feature_correlations()
+# dataset_samples.plot_feature_violin()
 # dataset_samples.plot_feature_boxplots()
 # dataset_samples.plot_feature_histograms()
 # dataset_samples.plot_lda_3d()
 # dataset_samples.plot_lda_2d()
+
+
+
 
 # Get stats of 5590 merged dataset
 dataset_merged = Dataset(data_reader_merged.read_data())
@@ -71,14 +73,8 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 
 # Define predictors to use, provide it with a dataset to fit on.
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
-# data_point = dataset_merged.test_data.loc['Run 1_Trace 1613676513158'] < diff by 2 methods
 # Pick the data point you want to have explained.
-# test_points = data_reader_merged.read_data(file_path_new)['data']
-# data_point = test_points.iloc[0] # 1_2B.Trace#01
-# data_point = test_points.iloc[1] # 1_6B.Trace#01
 # data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
-# data_point = dataset_merged.train_data.loc['2.37']
-# data_point = dataset_merged.test_data.loc['2.29']
 # print(data_point)
 # dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
 
@@ -147,10 +143,10 @@ CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
 
-
+evaluator.plot_boxplot()
 # start_time = datetime.now()
-# evaluator.evaluate('dice_genetic')
+# evaluator.evaluate('reco')
 # end_time = datetime.now()
 # print('took {}'.format((end_time-start_time).total_seconds()/60) + ' to compute')
 
-evaluator.plot_boxplot()
+# evaluator.plot_boxplot()

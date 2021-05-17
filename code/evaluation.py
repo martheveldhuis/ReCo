@@ -88,11 +88,11 @@ class Evaluator:
 
     def get_reco_unfiltered_counterfactual(self, dp, dp_scaled, cf_target, i):
 
-        return self.cf_generator.generate_weighted_counterfactual(dp, dp_scaled, cf_target)
+        return self.cf_generator.generate_pareto_counterfactual(dp, dp_scaled, cf_target)
 
     def get_reco_counterfactual(self, dp, dp_scaled, cf_target, i):
 
-        cf_profile, cf_scaled, cf_pred, changes = self.cf_generator.generate_weighted_counterfactual(dp, dp_scaled, cf_target)
+        cf_profile, cf_scaled, cf_pred, changes = self.cf_generator.generate_pareto_counterfactual(dp, dp_scaled, cf_target)
         dp_pred = self.predictor.get_prediction(dp[self.dataset.feature_names])
         dp_shap = self.shap_generator.get_shap_values(dp)
         cf_shap = self.shap_generator.get_shap_values(cf_profile)
@@ -186,7 +186,7 @@ class Evaluator:
                                    'Distance to training data point':distance_to_td,
                                    'Target missed': target_missed,
                                    'Realism score': realism})
-        evaluation.to_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic.csv')
+        evaluation.to_csv(r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_par.csv')
 
 
     def count_features_changed(self, changes):
@@ -259,7 +259,9 @@ class Evaluator:
                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic',
                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif',
                      r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f',
-                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco']
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_par_no_f',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_par']
         
         for file in filenames:
             eval = pd.read_csv(file + '.csv', index_col=0)
@@ -271,22 +273,20 @@ class Evaluator:
 
     def plot_boxplot(self): 
         
-        filenames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice',
-                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic',
-                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif',
-                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_no_f',
-                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco']
+        filenames = [r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice.csv',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_dice_genetic.csv',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_whatif.csv',
+                     r'D:\Documenten\TUdelft\thesis\mep_veldhuis\code\evaluation\eval_reco_par.csv']
 
         eval_dice = pd.read_csv(filenames[0], index_col=0)
         eval_dice_g = pd.read_csv(filenames[1], index_col=0)
         eval_whatif = pd.read_csv(filenames[2], index_col=0)
-        # eval_reco_no_f = pd.read_csv(filenames[3], index_col=0)
-        eval_reco = pd.read_csv(filenames[4], index_col=0)
+        eval_reco = pd.read_csv(filenames[3], index_col=0)
         
         fig, axss = plt.subplots(2, 2, figsize=(11,7))
 
-        box_colors = ['#1170aa', '#5fa2ce', '#a3acb9', '#ffbc79'] # '#c85200',
-        titles = ['Number of features changed', 'Distance to the profile to be explained', 
+        box_colors = ['#1170aa', '#5fa2ce', '#a3acb9', '#ffbc79'] #, '#c85200']
+        titles = ['Number of different features', 'Distance to the profile to be explained', 
                   'Distance to the nearest training data point', 'Targets missed', 'Realism score']
 
         i = 1
@@ -296,7 +296,8 @@ class Evaluator:
                     i = 5
                 
                 bplot = ax.boxplot([eval_dice.iloc[:,i], eval_dice_g.iloc[:,i], 
-                                    eval_whatif.iloc[:,i], eval_reco.iloc[:,i]], patch_artist=True,
+                                    eval_whatif.iloc[:,i], eval_reco.iloc[:,i]],
+                                    patch_artist=True,
                                     medianprops=dict(color='k', linewidth=2))
                 ax.set_title(titles[i-1], pad=15)
                 ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
@@ -309,4 +310,4 @@ class Evaluator:
                 i += 1
 
         fig.tight_layout(pad=2)
-        fig.savefig(r'evaluation\boxplot_final_eval.png')
+        fig.savefig(r'evaluation\boxplot_final_eval2.png')
