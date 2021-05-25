@@ -50,8 +50,8 @@ class Visualization:
                                 tight_layout=True, constrained_layout=False)
         plt.subplots_adjust(hspace=0.0, wspace=0.1)
         fig.suptitle('Profile ' + self.data_point.name + 
-                    ' was predicted to have {:.2f}'.format(self.prediction) +
-                    ' ({}) contributors.'.format(round(self.prediction)) +
+                    ' was predicted to have {}'.format(round(self.prediction)) +
+                    ' ({:.2f}) contributor(s).'.format(self.prediction) +
                     ' Below you will find the top features for the current prediction (left)' +
                     ' and the feature values on a normalized scale (right)', 
                     fontsize=14, ha='center')
@@ -179,8 +179,8 @@ class Visualization:
                                           head_width=0.4, head_length=head_length)
 
         self.fig.suptitle('Profile ' + self.data_point.name + 
-                          ' was predicted to have {:.2f}'.format(self.prediction) +
-                          ' ({}) contributors.'.format(round(self.prediction)) + 
+                          ' was predicted to have {}'.format(round(self.prediction)) +
+                          ' ({:.2f}) contributor(s).'.format(self.prediction) +
                           ' Below you will find the top features for the current prediction (left)' +
                           ' and changes to reach an alternative prediction (right)', 
                           fontsize=14, ha='center')
@@ -189,12 +189,12 @@ class Visualization:
         if(tol):
             cf_ax.set_title('The following changes in feature values show the top changes ' +
                             'needed to reach the prediction of {}'.format(round(counterfactual_pred)) +
-                            ' contributors.', loc='left', fontsize=12)
+                            ' contributor(s).', loc='left', fontsize=12)
 
         else:
             cf_ax.set_title('The following changes in feature values show the most similar ' +
                             'profile with a prediction of {}'.format(round(counterfactual_pred)) +
-                            ' contributors.', loc='left', fontsize=12)
+                            ' contributor(s).', loc='left', fontsize=12)
 
         self.profile_ax = cf_ax
 

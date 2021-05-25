@@ -20,16 +20,16 @@ from evaluation import Evaluator
 ################################ DATA READING ################################
 
 # Define which file to read, test fraction, and the custom data reader.
-file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_19.txt'
-file_path_samples = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\features5000\Features5000_19.txt'
+# file_path = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features590_19.txt'
+# file_path_samples = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\features5000\Features5000_19.txt'
 file_path_merged = r'D:\Documenten\TUdelft\thesis\mep_veldhuis\data\Features_merged_19.txt'
 test_fraction = 0.2
-data_reader = DataReader19Features(file_path, test_fraction)
-data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
+# data_reader = DataReader19Features(file_path, test_fraction)
+# data_reader_samples = DataReader19Features(file_path_samples, test_fraction)
 data_reader_merged = DataReader19Features(file_path_merged, test_fraction)
 
 # Get stats of 590 dataset
-dataset = Dataset(data_reader.read_data())
+# dataset = Dataset(data_reader.read_data())
 # print(dataset.data.shape)
 # print(dataset.get_features_min_max()
 # print(dataset.get_features_mad())
@@ -41,7 +41,7 @@ dataset = Dataset(data_reader.read_data())
 # dataset.plot_lda_2d()
 
 # Get stats of 5000 sampled dataset
-dataset_samples = Dataset(data_reader_samples.read_data())
+# dataset_samples = Dataset(data_reader_samples.read_data())
 # print(dataset_samples.data.shape)
 # print(dataset_samples.get_features_min_max())
 # print(dataset_samples.get_features_mad())
@@ -51,9 +51,6 @@ dataset_samples = Dataset(data_reader_samples.read_data())
 # dataset_samples.plot_feature_histograms()
 # dataset_samples.plot_lda_3d()
 # dataset_samples.plot_lda_2d()
-
-
-
 
 # Get stats of 5590 merged dataset
 dataset_merged = Dataset(data_reader_merged.read_data())
@@ -73,8 +70,11 @@ dataset_merged = Dataset(data_reader_merged.read_data())
 
 # Define predictors to use, provide it with a dataset to fit on.
 rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
+
 # Pick the data point you want to have explained.
 # data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
+# data_point = dataset_merged.test_data.loc['2.29']
+# data_point = dataset_merged.test_data.iloc[12]
 # print(data_point)
 # dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
 
@@ -102,11 +102,6 @@ shap_generator = ShapGenerator(dataset_merged, rf_regressor_merged, 300)
 
 # ################################ COUNTERFACTUALS ################################
 
-
-# start_time = datetime.now()
-# end_time = datetime.now()
-# print('Counterfactual took {}'.format((end_time-start_time).total_seconds()) + ' to compute')
-
 # Define counterfactual generators (1 generator must be fitted to 1
 CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
@@ -123,15 +118,13 @@ CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 #                 continue
 #             return cf_target
 
-
-
 # cf_target = get_user_cf_target(dp_pred)
 
 # cf, cf_scaled, cf_pred, changes = CF_generator.generate_weighted_counterfactual(data_point, data_point_scaled, cf_target)
 # visualization.plot_counterfactual(cf, cf_scaled, cf_pred, changes)
 
 
-# Add tolerance before plotting
+# # Add tolerance before plotting
 # cf_shap = shap_generator.get_shap_values(cf)
 # changes = CF_generator.add_shap_tolerance(data_point, dp_shap, dp_pred, cf, cf_shap, cf_target, changes)
 # visualization.plot_counterfactual_tol(cf, cf_scaled, cf_pred, changes)
@@ -141,9 +134,9 @@ CF_generator = CounterfactualGenerator(dataset_merged, rf_regressor_merged)
 
 
 
-evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
+# evaluator = Evaluator(dataset_merged, rf_regressor_merged, CF_generator, shap_generator)
 
-evaluator.plot_boxplot()
+# evaluator.plot_boxplot()
 # start_time = datetime.now()
 # evaluator.evaluate('reco')
 # end_time = datetime.now()

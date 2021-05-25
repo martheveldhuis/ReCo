@@ -275,5 +275,6 @@ class CounterfactualGenerator:
                 break
             else:
                 features_to_drop.append(feature)
+                print(feature)
 
         return changes.drop(features_to_drop, inplace=False)

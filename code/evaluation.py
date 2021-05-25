@@ -169,13 +169,13 @@ class Evaluator:
             profiles.append(index)
 
             # Prints for monitoring progress.
-            print('original: {:.2f}'.format(dp_pred) + 'target: {}'.format(cf_target) + 
-                  ' new pred: {}'.format(new_pred.round()) + ' unrounded: {:.2f}'.format(new_pred))
-            print('features changed: {:.2f}'.format(features_changed[i]))
-            print('distance to dp: {:.2f}'.format(distance_to_dp[i]))
-            print('target missed: {}'.format(np.sum(target_missed[i])))
-            print('distance to td: {:.2f}'.format(distance_to_td[i]))
-            print('realism score: {:.2f}'.format(realism[i]))
+            # print('original: {:.2f}'.format(dp_pred) + 'target: {}'.format(cf_target) + 
+            #       ' new pred: {}'.format(new_pred.round()) + ' unrounded: {:.2f}'.format(new_pred))
+            # print('features changed: {:.2f}'.format(features_changed[i]))
+            # print('distance to dp: {:.2f}'.format(distance_to_dp[i]))
+            # print('target missed: {}'.format(np.sum(target_missed[i])))
+            # print('distance to td: {:.2f}'.format(distance_to_td[i]))
+            # print('realism score: {:.2f}'.format(realism[i]))
 
             i+=1
 
