@@ -75,6 +75,7 @@ rf_regressor_merged = RFR19(dataset_merged, 'RFR19_merged.sav')
 # data_point = dataset_merged.test_data.loc['2A3.3'] # wrong prediction by model!
 # data_point = dataset_merged.test_data.loc['2.29']
 # data_point = dataset_merged.test_data.iloc[12]
+# data_point = dataset_merged.test_data.loc['4.11'] # outlier in LDA
 # print(data_point)
 # dp_pred = rf_regressor_merged.get_prediction(data_point[dataset_merged.feature_names])
 

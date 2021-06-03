@@ -284,7 +284,8 @@ class Dataset:
         plt.legend(unique_labels)
         ax.set_title('LDA fit on 5000 dataset, applied on 5000 dataset', fontsize=14)
 
+        plt.show()
         plt.savefig(r'data_analysis\lda2d_' + self.file_name + '.png', 
-                    facecolor=fig.get_facecolor(), bbox_inches='tight')
+                     facecolor=fig.get_facecolor(), bbox_inches='tight')
         return lda
 

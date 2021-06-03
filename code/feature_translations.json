@@ -11,7 +11,7 @@
     "SumAF_TH01":"TH01 sum of allele freq.",
     "AlleleCount_TPOX":"TPOX allele count",
     "MinNOC_TPOX":"TPOX min. NOC",
-    "stdHeight_vWA":"vWa peak height variation",
+    "stdHeight_vWA":"vWA peak height variation",
     "stdAllele":"Allele count variation",
     "MAC0":"Loci with 0 alleles",
     "MAC5-6":"Loci with 5-6 alleles",
