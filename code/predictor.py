@@ -32,6 +32,17 @@ class Predictor:
         """
         raise NotImplementedError
 
+    def get_prediction_proba(self, x):
+        """
+        Only for classification models:
+        Interface for getting the prediction prob of the model on instance(s) x.
+        
+        :param x: Series/array of input value(s) for which you want the prediction
+        :returns: the raw prediction(s) 
+       
+        """
+        raise NotImplementedError
+
     def get_second_prediction(self, x):
         """
         Interface for getting the secondary prediction of the model on the instance x.

@@ -1,3 +1,4 @@
+from sklearn_predictors import RFC19
 import shap
 
 from data import Dataset
@@ -42,15 +43,16 @@ class ShapGenerator:
             train_data_expl = self.dataset.train_data[self.dataset.feature_names]
         
         # Using KernelExplainer to stay model-agnostic. 
-        # TODO: for classification, change get_prediction to get_prediction_proba
+        # for classification, change get_prediction to get_prediction_proba
+        if isinstance(self.predictor, RFC19):
+            return shap.KernelExplainer(self.predictor.get_prediction_proba, train_data_expl)
         return shap.KernelExplainer(self.predictor.get_prediction, train_data_expl)
 
     def get_shap_values(self, data_point):
         """Calculate the SHAP values for the current data point"""
-        # shap_values = self.explainer.shap_values(data_point[self.dataset.feature_names])
-        # f=shap.force_plot(self.explainer.expected_value, shap_values, data_point[self.dataset.feature_names], show=False)
-        # shap.save_html("index.html", f)
-        return self.explainer.shap_values(data_point[self.dataset.feature_names])
+
+        shap_values = self.explainer.shap_values(data_point[self.dataset.feature_names])
+        return shap_values
 
     def get_shap_explanation(self, data_point):
         """

@@ -92,6 +92,13 @@ class RFC19(Predictor):
         self.correct_pred = self.dataset.train_data.iloc[correct_pred, :]
         self.incorrect_pred = self.dataset.train_data.iloc[incorrect_pred, :]          
 
+    def get_prediction_proba(self, x):
+        """Just a wrapper for the predict proba function."""
+        if isinstance(x, pd.Series):
+            return self.model.predict_proba(x.values.reshape(1, -1))[0]
+        else:
+            return self.model.predict_proba(x)
+
     def get_prediction(self, x):
         """Just a wrapper for the predict function."""
         if isinstance(x, pd.Series):

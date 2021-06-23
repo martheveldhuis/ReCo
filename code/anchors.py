@@ -272,3 +272,14 @@ class Anchor:
         fig.tight_layout()
         plt.savefig(r'results\anchor_v0' + self.model_name + '.png', 
                     facecolor=fig.get_facecolor(), bbox_inches='tight')
+
+
+# ################################ ANCHORS ################################
+
+# Define Anchors generators (1 generator must be fitted to 1 predictor).
+# anchors_generator_c = AnchorsGenerator(dataset_merged, model)
+
+# Generate Anchors and print them.
+# anchor = anchors_generator_c.generate_basic_anchor(data_point)
+# anchor.plot_anchor()
+# anchor.print_anchor_text()

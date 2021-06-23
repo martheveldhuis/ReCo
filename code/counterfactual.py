@@ -3,6 +3,7 @@ import numpy as np
 
 from data import Dataset
 from predictor import Predictor
+from sklearn_predictors import RFC19
 
 class CounterfactualGenerator:
     """A class for generating counterfactuals."""
@@ -194,7 +195,6 @@ class CounterfactualGenerator:
         :returns two floats
         """
         feat_min_max = self.dataset.get_features_min_max()
-        feat_mad = self.dataset.get_features_mad()
         total_num_features = len(feat_min_max.columns)
         total_dist = 0
         total_features_changed = 0
@@ -247,10 +247,12 @@ class CounterfactualGenerator:
         changes_sorted['shap_changes'] = changed_shap_dp_to_cf
 
         increase_shap = False
-        if cf_target > dp_pred: # Sort by most negative shap change first
+        # Sort by most negative shap change first.
+        if cf_target > dp_pred or isinstance(self.predictor, RFC19): 
             changes_sorted.sort_values(by='shap_changes', inplace=True, ascending=True)
             increase_shap = True
-        else:                   # Sort by most postitive shap change first
+        # Sort by most postitive shap change first.
+        else:
             changes_sorted.sort_values(by='shap_changes', inplace=True, ascending=False)
 
         # Iteratively remove changes by deleting the most irrelevant change first.

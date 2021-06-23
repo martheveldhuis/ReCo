@@ -1,34 +1,8 @@
 import numpy as np
 import pandas as pd
-import math
-import shap
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# options_1 = ['stayed 2, 3, 4', 'stayed 3', 'stayed 3, 4', '3, 4 to 2, 3, 4', '2, 3, 4 to 3, 4']
-# options_2 = ['stayed i don\'t know', 'stayed yes', 'yes to i don\'t know', 'i don\'t know to yes']
-# options_3 = ['3, 4, 5 to 4', '3, 4 to 3', '3, 4, 5 to 3, 4', '2, 3, 4, 5 to 3, 4', 'stayed 3, 4, 5', 'stayed 3, 4']
-
-# pred_to_shap_1 = [1, 1, 1, 1, 3]
-# pred_to_vis_1 = [0, 1, 2, 0, 4]
-
-# pred_to_cf_2 = [1, 0, 0, 1, 1, 4]
-# pred_to_vis_2 = [0, 1, 1, 1, 1, 3]
-
-# pred_1 = [4, 1, 2, 0, 0]
-# shap_1 = [2, 1, 4, 0, 0]
-# vis_1 = [0, 1, 6, 0, 0]
-# purple = '#673ab7'
-
-# fig, axs = plt.subplots(1, 2, sharey=True, figsize=(17,3), tight_layout=True)
-
-# axs[0].bar(options_3, pred_to_cf_2, color=purple)
-# axs[1].bar(options_3, pred_to_vis_2, color=purple)
-
-# axs[0].set_title('Changes to considered NOC from only the prediction of 4 (3.53) to the CF table explanation')
-# axs[1].set_title('Changes to considered NOC from only the prediction of 4 (3.53) to the compound visualization')
-
-# plt.show(block=True)
 
 purples = ['#522f8f', '#937dba', '#d5caeb']
 
