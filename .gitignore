@@ -1,4 +1,2 @@
 data/
-code/results/
-code/evaluation/
-code/data_analysis/
+code/file_paths.json
